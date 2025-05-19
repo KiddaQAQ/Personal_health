@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>所有记录 - 个人健康管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #0d6efd;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.75rem 1.5rem;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .record-item {
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        .record-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .category-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h1 class="h5">个人健康管理系统</h1>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard" target="_self">
+                                <i class="bi bi-speedometer2"></i> 仪表盘
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health/records" target="_self">
+                                <i class="bi bi-clipboard-pulse"></i> 添加记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/records" target="_self">
+                                <i class="bi bi-journal-text"></i> 所有记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/analysis" target="_self">
+                                <i class="bi bi-pie-chart"></i> 营养分析与运动建议
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health-report" target="_self">
+                                <i class="bi bi-file-earmark-text"></i> 健康报告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reminders" target="_self">
+                                <i class="bi bi-bell"></i> 药物与预约提醒
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/social" target="_self">
+                                <i class="bi bi-people"></i> 社交互动
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)" id="logout-link">
+                                <i class="bi bi-box-arrow-right"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">所有记录</h1>
+                    <div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search-input" placeholder="搜索记录...">
+                            <button class="btn btn-outline-secondary" type="button" id="search-button">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 筛选条件 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <form id="filter-form" class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="date-range" class="form-label">日期范围</label>
+                                        <select class="form-select" id="date-range">
+                                            <option value="7">最近7天</option>
+                                            <option value="30">最近30天</option>
+                                            <option value="90">最近3个月</option>
+                                            <option value="all" selected>全部记录</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="sort-by" class="form-label">排序方式</label>
+                                        <select class="form-select" id="sort-by">
+                                            <option value="date-desc" selected>日期 (最新优先)</option>
+                                            <option value="date-asc">日期 (最早优先)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-primary w-100">应用筛选</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 记录列表 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div id="records-container">
+                                    <div class="text-center my-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                        <p class="mt-2">正在加载记录...</p>
+                                    </div>
+                                </div>
+                                <div id="pagination" class="d-flex justify-content-center my-4">
+                                    <!-- 分页将在JS中生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局变量
+        let allRecords = [];  // 所有获取到的记录
+        let currentPage = 1;  // 当前页码
+        let recordsPerPage = 10;  // 每页显示的记录数
+        let filteredRecords = [];  // 筛选后的记录
+        
+        // 当文档加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 验证登录状态
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                alert('请先登录');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 加载记录
+            loadAllRecords();
+            
+            // 绑定事件
+            document.getElementById('filter-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                filterRecords();
+            });
+            
+            document.getElementById('search-button').addEventListener('click', function() {
+                filterRecords();
+            });
+            
+            document.getElementById('search-input').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    filterRecords();
+                }
+            });
+            
+            // 退出登录
+            document.getElementById('logout-link').addEventListener('click', function() {
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login';
+            });
+        });
+        
+        // 加载所有记录
+        function loadAllRecords() {
+            const token = localStorage.getItem('jwt_token');
+            
+            // 显示加载中状态
+            document.getElementById('records-container').innerHTML = `
+                <div class="text-center my-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2">正在加载记录...</p>
+                </div>
+            `;
+            
+            // 创建要请求的API列表
+            const apiRequests = [
+                // 健康指标记录
+                fetch('/api/health-metrics/records', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => response.json()),
+                
+                // 饮食记录
+                fetch('/api/diet/records', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => response.json()),
+                
+                // 运动记录
+                fetch('/api/exercise/records', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => response.json()),
+                
+                // 饮水记录
+                fetch('/api/water-intake/records', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => response.json()),
+                
+                // 服药记录
+                fetch('/api/medication/records', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => response.json()),
+                
+                // 旧版健康记录API（保留兼容性）
+                fetch('/api/health/records', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => response.json())
+            ];
+            
+            // 并行请求所有API
+            Promise.all(apiRequests)
+                .then(results => {
+                    allRecords = []; // 清空记录数组
+                    
+                    // 处理健康指标记录
+                    if (results[0].success && results[0].records) {
+                        const healthMetricsRecords = results[0].records.map(record => ({
+                            id: record.id,
+                            type: 'health',
+                            date: record.record_date,
+                            title: '健康指标记录',
+                            summary: `体重: ${record.weight || '-'}kg, BMI: ${record.bmi || '-'}, 血压: ${record.blood_pressure_systolic ? record.blood_pressure_systolic + '/' + record.blood_pressure_diastolic : '-'} mmHg`,
+                            details: record
+                        }));
+                        allRecords = allRecords.concat(healthMetricsRecords);
+                    }
+                    
+                    // 处理饮食记录
+                    if (results[1].success && results[1].records) {
+                        const dietRecords = results[1].records.map(record => ({
+                            id: record.id,
+                            type: 'diet',
+                            date: record.record_date,
+                            title: `${record.meal_type || '饮食'} 记录`,
+                            summary: `食物: ${record.food_name || '-'}, 数量: ${record.food_amount || record.amount || 0}g`,
+                            details: record
+                        }));
+                        allRecords = allRecords.concat(dietRecords);
+                    }
+                    
+                    // 处理运动记录
+                    if (results[2].success && results[2].records) {
+                        const exerciseRecords = results[2].records.map(record => ({
+                            id: record.id,
+                            type: 'exercise',
+                            date: record.record_date,
+                            title: `${record.exercise_type || '运动'} 记录`,
+                            summary: `时长: ${record.duration}分钟, 消耗: ${record.calories_burned || 0}卡路里`,
+                            details: record
+                        }));
+                        allRecords = allRecords.concat(exerciseRecords);
+                    }
+                    
+                    // 处理饮水记录
+                    if (results[3].success && results[3].records) {
+                        const waterRecords = results[3].records.map(record => ({
+                            id: record.id,
+                            type: 'water',
+                            date: record.record_date,
+                            title: '饮水记录',
+                            summary: `饮水量: ${record.water_amount || record.amount || 0}毫升, 类型: ${record.water_type || '普通水'}`,
+                            details: record
+                        }));
+                        allRecords = allRecords.concat(waterRecords);
+                    }
+                    
+                    // 处理服药记录
+                    if (results[4].success && results[4].records) {
+                        const medicationRecords = results[4].records.map(record => ({
+                            id: record.id,
+                            type: 'medication',
+                            date: record.record_date,
+                            title: `${record.medication_name || '药物'} 记录`,
+                            summary: `剂量: ${record.dosage}${record.dosage_unit}, 服用时间: ${formatTime(record.time_taken)}`,
+                            details: record
+                        }));
+                        allRecords = allRecords.concat(medicationRecords);
+                    }
+                    
+                    // 处理旧版健康记录
+                    if (results[5].success && results[5].records) {
+                        // 过滤掉已经通过新API加载的记录，避免重复
+                        const oldRecords = results[5].records.filter(oldRecord => {
+                            return !allRecords.some(newRecord => 
+                                newRecord.id === oldRecord.id && 
+                                newRecord.type === oldRecord.record_type
+                            );
+                        });
+                        
+                        const compatibilityRecords = oldRecords.map(record => {
+                            const recordType = record.record_type || 'health';
+                            let title = '记录';
+                            let summary = '';
+                            
+                            switch (recordType) {
+                                case 'health':
+                                    title = '健康指标记录';
+                                    summary = `体重: ${record.weight || '-'}kg, BMI: ${record.bmi || '-'}, 血压: ${record.blood_pressure_systolic ? record.blood_pressure_systolic + '/' + record.blood_pressure_diastolic : '-'} mmHg`;
+                                    break;
+                                case 'diet':
+                                    title = `${record.meal_type || '饮食'} 记录`;
+                                    summary = `食物: ${record.food_name || '-'}, 数量: ${record.food_amount || record.amount || 0}g`;
+                                    break;
+                                case 'exercise':
+                                    title = `${record.exercise_type || '运动'} 记录`;
+                                    summary = `时长: ${record.duration}分钟, 强度: ${record.intensity || '-'}`;
+                                    break;
+                                case 'water':
+                                    title = '饮水记录';
+                                    summary = `饮水量: ${record.water_amount || record.amount || 0}毫升, 类型: ${record.water_type || '普通水'}`;
+                                    break;
+                                case 'medication':
+                                    title = `${record.medication_name || '药物'} 记录`;
+                                    summary = `剂量: ${record.dosage || '-'}${record.dosage_unit || ''}, 服用时间: ${formatTime(record.time_taken) || '-'}`;
+                                    break;
+                            }
+                            
+                            return {
+                                id: record.id,
+                                type: recordType,
+                                date: record.record_date,
+                                title: title,
+                                summary: summary,
+                                details: record
+                            };
+                        });
+                        
+                        allRecords = allRecords.concat(compatibilityRecords);
+                    }
+                    
+                    // 所有记录加载完成后，排序并显示
+                    allRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    filteredRecords = [...allRecords];
+                    renderRecords();
+                })
+                .catch(error => {
+                    console.error('获取记录出错:', error);
+                    document.getElementById('records-container').innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            加载记录时出错: ${error.message}
+                        </div>
+                    `;
+                });
+        }
+        
+        // 筛选记录
+        function filterRecords() {
+            const dateRange = document.getElementById('date-range').value;
+            const sortBy = document.getElementById('sort-by').value;
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            
+            // 根据日期范围筛选
+            let filteredByDate = [...allRecords];
+            if (dateRange !== 'all') {
+                const days = parseInt(dateRange);
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+                
+                filteredByDate = allRecords.filter(record => {
+                    const recordDate = new Date(record.date);
+                    return recordDate >= cutoffDate;
+                });
+            }
+            
+            // 根据搜索词筛选
+            filteredRecords = filteredByDate;
+            if (searchTerm) {
+                filteredRecords = filteredByDate.filter(record => {
+                    return (
+                        record.title.toLowerCase().includes(searchTerm) ||
+                        record.summary.toLowerCase().includes(searchTerm)
+                    );
+                });
+            }
+            
+            // 排序
+            if (sortBy === 'date-desc') {
+                filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+            } else if (sortBy === 'date-asc') {
+                filteredRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
+            }
+            
+            // 重置页码并重新渲染
+            currentPage = 1;
+            renderRecords();
+        }
+        
+        // 渲染记录
+        function renderRecords() {
+            const container = document.getElementById('records-container');
+            
+            // 如果没有记录
+            if (filteredRecords.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center my-5">
+                        <i class="bi bi-journal-x" style="font-size: 3rem; color: #aaa;"></i>
+                        <p class="mt-3 text-muted">未找到记录</p>
+                        <a href="/health/records" class="btn btn-primary mt-2">添加记录</a>
+                    </div>
+                `;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+            
+            // 计算分页
+            const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = Math.min(startIndex + recordsPerPage, filteredRecords.length);
+            const pageRecords = filteredRecords.slice(startIndex, endIndex);
+            
+            // 渲染记录卡片
+            let html = '';
+            pageRecords.forEach(record => {
+                const recordDate = new Date(record.date).toLocaleDateString('zh-CN');
+                const typeInfo = getRecordTypeInfo(record.type);
+                
+                html += `
+                    <div class="record-item p-3 mb-3 border rounded">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-1">
+                                    ${typeInfo.icon} ${record.title}
+                                    <span class="badge ${typeInfo.bgColor} category-badge ms-2">${typeInfo.label}</span>
+                                </h5>
+                                <p class="mb-2 text-muted small">${recordDate}</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary view-record" data-record-id="${record.id}" data-record-type="${record.type}">
+                                    <i class="bi bi-eye"></i> 查看
+                                </button>
+                            </div>
+                        </div>
+                        <p class="mb-0">${record.summary}</p>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // 渲染分页
+            renderPagination(totalPages);
+            
+            // 绑定查看按钮事件
+            bindViewButtons();
+        }
+        
+        // 渲染分页
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '<nav aria-label="分页"><ul class="pagination">';
+            
+            // 上一页按钮
+            if (currentPage > 1) {
+                html += `
+                    <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Previous" data-page="${currentPage - 1}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                `;
+            } else {
+                html += `
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                `;
+            }
+            
+            // 页码按钮
+            const maxPagesToShow = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+            let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+            
+            if (endPage - startPage + 1 < maxPagesToShow) {
+                startPage = Math.max(1, endPage - maxPagesToShow + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                } else {
+                    html += `<li class="page-item"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+                }
+            }
+            
+            // 下一页按钮
+            if (currentPage < totalPages) {
+                html += `
+                    <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Next" data-page="${currentPage + 1}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                `;
+            } else {
+                html += `
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                `;
+            }
+            
+            html += '</ul></nav>';
+            pagination.innerHTML = html;
+            
+            // 绑定分页点击事件
+            document.querySelectorAll('.page-link[data-page]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    currentPage = parseInt(this.getAttribute('data-page'));
+                    renderRecords();
+                    window.scrollTo(0, 0);
+                });
+            });
+        }
+        
+        // 获取记录类型信息
+        function getRecordTypeInfo(type) {
+            const typeMap = {
+                'health': {
+                    label: '健康指标',
+                    icon: '<i class="bi bi-clipboard-pulse text-primary"></i>',
+                    bgColor: 'bg-primary'
+                },
+                'diet': {
+                    label: '饮食记录',
+                    icon: '<i class="bi bi-egg-fried text-success"></i>',
+                    bgColor: 'bg-success'
+                },
+                'exercise': {
+                    label: '运动记录',
+                    icon: '<i class="bi bi-activity text-danger"></i>',
+                    bgColor: 'bg-danger'
+                },
+                'water': {
+                    label: '饮水记录',
+                    icon: '<i class="bi bi-cup-straw text-info"></i>',
+                    bgColor: 'bg-info'
+                },
+                'medication': {
+                    label: '服药记录',
+                    icon: '<i class="bi bi-capsule text-warning"></i>',
+                    bgColor: 'bg-warning'
+                }
+            };
+            
+            return typeMap[type] || {
+                label: '其他记录',
+                icon: '<i class="bi bi-file-text text-secondary"></i>',
+                bgColor: 'bg-secondary'
+            };
+        }
+        
+        // 格式化时间
+        function formatTime(timeString) {
+            if (!timeString) return '';
+            return timeString.substring(0, 5);
+        }
+
+        // 格式化日期
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date)) return dateString;
+                return date.toLocaleDateString('zh-CN');
+            } catch (e) {
+                console.error('日期格式化错误:', e, dateString);
+                return dateString;
+            }
+        }
+
+        // 获取记录详情
+        function showRecordDetails(recordId, recordType) {
+            const token = localStorage.getItem('jwt_token');
+            
+            // 显示加载中状态
+            const modalBody = document.querySelector('#recordDetailsModal .modal-body');
+            modalBody.innerHTML = `
+                <div class="text-center my-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2">正在加载记录详情...</p>
+                </div>
+            `;
+            
+            // 显示模态框
+            const modal = new bootstrap.Modal(document.getElementById('recordDetailsModal'));
+            modal.show();
+            
+            // 根据记录类型确定正确的API路径
+            let apiUrl;
+            switch(recordType) {
+                case 'health':
+                    apiUrl = `/api/health-metrics/records/${recordId}`;
+                    break;
+                case 'water':
+                    apiUrl = `/api/water-intake/records/${recordId}`;
+                    break;
+                case 'diet':
+                    apiUrl = `/api/diet/records/${recordId}`;
+                    break;
+                case 'exercise':
+                    apiUrl = `/api/exercise/records/${recordId}`;
+                    break;
+                case 'medication':
+                    apiUrl = `/api/medication/records/${recordId}`;
+                    break;
+                default:
+                    // 兜底方案，使用旧版API
+                    apiUrl = `/api/health/records/${recordId}`;
+            }
+            
+            console.log(`获取记录详情: ${apiUrl}`);
+            
+            // 获取记录详情
+            fetch(apiUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                console.log('API响应状态码:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                try {
+                    console.log('API响应数据:', data);
+                    
+                    if (data.success) {
+                        const record = data.record;
+                        console.log('记录详情数据:', record);
+                        
+                        // 创建detailsHtml变量，定义在此函数作用域内
+                        let detailsHtml = '<div class="table-responsive"><table class="table table-bordered">';
+                        
+                        // 记录字段和顺序
+                        const commonFieldsOrder = ['record_date'];
+                        const healthFieldsOrder = [
+                            'weight', 'height', 'bmi', 'blood_pressure_systolic', 'blood_pressure_diastolic', 
+                            'heart_rate', 'blood_sugar', 'body_fat', 'sleep_hours', 'steps'
+                        ];
+                        const dietFieldsOrder = ['meal_type', 'food_name', 'food_amount', 'total_calories'];
+                        const exerciseFieldsOrder = ['exercise_type', 'duration', 'intensity', 'calories_burned'];
+                        const waterFieldsOrder = ['amount', 'water_type', 'intake_time'];
+                        const medicationFieldsOrder = [
+                            'medication_name', 'dosage', 'dosage_unit', 'frequency', 
+                            'time_taken', 'with_food', 'effectiveness', 'side_effects'
+                        ];
+                        
+                        // 根据记录类型获取字段顺序
+                        let fieldsOrder = [...commonFieldsOrder];
+                        if (recordType === 'health') {
+                            fieldsOrder = [...fieldsOrder, ...healthFieldsOrder];
+                        } else if (recordType === 'diet') {
+                            fieldsOrder = [...fieldsOrder, ...dietFieldsOrder];
+                        } else if (recordType === 'exercise') {
+                            fieldsOrder = [...fieldsOrder, ...exerciseFieldsOrder];
+                        } else if (recordType === 'water') {
+                            fieldsOrder = [...fieldsOrder, ...waterFieldsOrder];
+                        } else if (recordType === 'medication') {
+                            fieldsOrder = [...fieldsOrder, ...medicationFieldsOrder];
+                        }
+                        
+                        // 添加备注字段到最后
+                        fieldsOrder.push('notes');
+                        
+                        // 记录已处理的字段
+                        const processedFields = new Set();
+                        
+                        // 首先按预定义顺序显示字段
+                        for (const fieldName of fieldsOrder) {
+                            if (fieldName !== 'record_type' && (record.hasOwnProperty(fieldName) || 
+                                (fieldName === 'blood_pressure_diastolic' && record.hasOwnProperty('blood_pressure_systolic')))) {
+                                displayField(fieldName, record);
+                                processedFields.add(fieldName);
+                            }
+                        }
+                        
+                        // 显示剩余的字段（未在预定义顺序中的）
+                        for (const key in record) {
+                            if (record.hasOwnProperty(key) && !processedFields.has(key) && 
+                                !['id', 'user_id', 'created_at', 'updated_at', 'items', 'record_type', 'distance'].includes(key)) {
+                                displayField(key, record);
+                                processedFields.add(key);
+                            }
+                        }
+                        
+                        // 特殊处理items字段（饮食记录的食物项目）
+                        if (record.items && Array.isArray(record.items) && record.items.length > 0) {
+                            let itemsHtml = '<div class="mt-3"><h6>食物项目:</h6><table class="table table-sm"><thead><tr><th>食物</th><th>数量</th><th>热量</th></tr></thead><tbody>';
+                            record.items.forEach(item => {
+                                itemsHtml += `<tr>
+                                    <td>${item.food_name || '-'}</td>
+                                    <td>${item.amount || '-'} g</td>
+                                    <td>${item.calories || '-'} kcal</td>
+                                </tr>`;
+                            });
+                            itemsHtml += '</tbody></table></div>';
+                            
+                            detailsHtml += `<tr><th>${getFieldDisplayName('items')}</th><td>${itemsHtml}</td></tr>`;
+                        }
+                        
+                        detailsHtml += '</table></div>';
+                        modalBody.innerHTML = detailsHtml;
+                        
+                        // 用于显示单个字段的内部函数
+                        function displayField(fieldName, record) {
+                            // 如果是distance字段，直接跳过
+                            if (fieldName === 'distance') return;
+                            // 新增：如果是饮食记录且fieldName为sugar，跳过
+                            if (recordType === 'diet' && fieldName === 'sugar') return;
+                            // 移除药物记录的有效性评分和副作用
+                            if (recordType === 'medication' && (fieldName === 'effectiveness' || fieldName === 'side_effects')) {
+                                return;
+                            }
+                            
+                            let value = record[fieldName];
+                            let displayValue = '';
+                            
+                            // 特殊处理一些字段的显示
+                            if (fieldName === 'record_date') {
+                                displayValue = formatDate(value);
+                            } else if (fieldName === 'time_taken' || fieldName === 'intake_time') {
+                                displayValue = formatTime(value) || '-';
+                            } else if (fieldName === 'with_food') {
+                                displayValue = value ? '是' : '否';
+                            } else if (fieldName === 'blood_pressure_systolic') {
+                                // 血压特殊处理
+                                if (record.blood_pressure_diastolic) {
+                                    displayValue = `${value}/${record.blood_pressure_diastolic} mmHg`;
+                                } else {
+                                    displayValue = `${value} mmHg (收缩压)`;
+                                }
+                            } else if (fieldName === 'blood_pressure_diastolic') {
+                                // 如果已经在收缩压中显示了舒张压，则跳过
+                                if (record.blood_pressure_systolic) {
+                                    return;
+                                }
+                                displayValue = `${value} mmHg (舒张压)`;
+                            } else if (value === null || value === undefined || value === '') {
+                                displayValue = '-';
+                            } else {
+                                // 为数值添加适当的单位
+                                if (fieldName === 'weight') displayValue = `${value} kg`;
+                                else if (fieldName === 'height') displayValue = `${value} cm`;
+                                else if (fieldName === 'bmi') displayValue = value;
+                                else if (fieldName === 'heart_rate') displayValue = `${value} bpm`;
+                                else if (fieldName === 'blood_sugar') displayValue = `${value} mmol/L`;
+                                else if (fieldName === 'body_fat') displayValue = `${value} %`;
+                                else if (fieldName === 'sleep_hours') displayValue = `${value} 小时`;
+                                else if (fieldName === 'steps') displayValue = `${value} 步`;
+                                else if (fieldName === 'amount' || fieldName === 'water_amount') displayValue = `${value} 毫升`;
+                                else if (fieldName === 'food_amount') displayValue = `${value} g`;
+                                else if (fieldName === 'duration') displayValue = `${value} 分钟`;
+                                else if (fieldName === 'calories_burned') displayValue = `${value} 卡路里`;
+                                else if (fieldName === 'total_calories') displayValue = `${value} 卡路里`;
+                                else if (fieldName === 'dosage') {
+                                    displayValue = `${value} ${record.dosage_unit || ''}`;
+                                }
+                                else if (fieldName === 'dosage_unit') return; // 已经在dosage中显示
+                                else displayValue = value;
+                            }
+                            
+                            // 转换字段名称为中文
+                            let fieldDisplayName = getFieldDisplayName(fieldName);
+                            
+                            // 添加行到表格
+                            detailsHtml += `<tr><th>${fieldDisplayName}</th><td>${displayValue}</td></tr>`;
+                        }
+                    } else {
+                        modalBody.innerHTML = `<div class="alert alert-danger">获取记录详情失败: ${data.message || '未知错误'}</div>`;
+                    }
+                } catch (error) {
+                    console.error('处理记录详情时出错:', error);
+                    modalBody.innerHTML = `<div class="alert alert-danger">处理记录详情时出错: ${error.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('获取记录详情错误:', error);
+                modalBody.innerHTML = `<div class="alert alert-danger">获取记录详情时出错: ${error.message}</div>`;
+            });
+        }
+
+        // 添加获取字段中文名称的函数
+        function getFieldDisplayName(fieldName) {
+            const fieldMap = {
+                'record_date': '记录日期',
+                'weight': '体重',
+                'height': '身高',
+                'bmi': 'BMI',
+                'blood_pressure_systolic': '血压',
+                'blood_pressure_diastolic': '舒张压',
+                'heart_rate': '心率',
+                'blood_sugar': '血糖',
+                'body_fat': '体脂率',
+                'sleep_hours': '睡眠时间',
+                'steps': '步数',
+                'food_name': '食物名称',
+                'meal_type': '餐次',
+                'food_amount': '食物量',
+                'exercise_type': '运动类型',
+                'duration': '运动时长',
+                'intensity': '运动强度',
+                'calories_burned': '消耗卡路里',
+                'water_amount': '饮水量',
+                'amount': '数量',
+                'water_type': '水的类型',
+                'intake_time': '饮水时间',
+                'medication_name': '药物名称',
+                'dosage': '剂量',
+                'dosage_unit': '剂量单位',
+                'frequency': '服用频率',
+                'time_taken': '服用时间',
+                'with_food': '是否与食物一起服用',
+                'effectiveness': '有效性评分',
+                'side_effects': '副作用',
+                'notes': '备注',
+                'items': '食物项目',
+                'total_calories': '总热量'
+            };
+            
+            return fieldMap[fieldName] || fieldName;
+        }
+
+        // 添加记录详情模态框
+        document.body.insertAdjacentHTML('beforeend', `
+            <div class="modal fade" id="recordDetailsModal" tabindex="-1" aria-labelledby="recordDetailsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="recordDetailsModalLabel">记录详情</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- 记录详情内容将在JavaScript中动态填充 -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // 在渲染记录后绑定查看按钮事件
+        function bindViewButtons() {
+            document.querySelectorAll('.view-record').forEach(button => {
+                button.addEventListener('click', function() {
+                    const recordId = this.getAttribute('data-record-id');
+                    const recordType = this.getAttribute('data-record-type');
+                    showRecordDetails(recordId, recordType);
+                });
+            });
+        }
+    </script>
+</body>
+</html> 

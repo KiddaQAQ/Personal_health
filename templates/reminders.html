@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>药物与预约提醒 - 个人健康管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #0d6efd;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.75rem 1.5rem;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            font-weight: bold;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .reminder-item {
+            border-radius: 10px;
+            margin-bottom: 12px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+        .reminder-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .reminder-time {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .reminder-completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+        .reminder-badge {
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h1 class="h5">个人健康管理系统</h1>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard" target="_self">
+                                <i class="bi bi-speedometer2"></i> 仪表盘
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health/records" target="_self">
+                                <i class="bi bi-clipboard-pulse"></i> 添加记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/records" target="_self">
+                                <i class="bi bi-journal-text"></i> 所有记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/analysis" target="_self">
+                                <i class="bi bi-pie-chart"></i> 营养分析与运动建议
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health-report" target="_self">
+                                <i class="bi bi-file-earmark-text"></i> 健康报告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/reminders" target="_self">
+                                <i class="bi bi-bell"></i> 药物与预约提醒
+                            </a>
+                        </li>
+                         <li class="nav-item">
+                            <a class="nav-link" href="/social" target="_self">
+                                <i class="bi bi-people"></i> 社交互动
+                            </a>
+                        </li>
+
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)" id="logout-link">
+                                <i class="bi bi-box-arrow-right"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">药物与预约提醒</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="input-group date">
+                            <span class="input-group-text">日期</span>
+                            <input type="date" class="form-control" id="reminder-date" name="reminder-date">
+                            <button class="btn btn-outline-secondary" type="button" id="load-date-btn">查看</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提醒列表 -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-capsule"></i> 药物提醒
+                                    <span class="badge bg-light text-dark" id="medication-count">0</span>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-light" id="add-medication-reminder-btn">
+                                        <i class="bi bi-plus-circle"></i> 添加提醒
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light" id="generate-medication-reminders-btn">
+                                        <i class="bi bi-magic"></i> 自动生成
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="medication-reminders-loading" class="text-center py-3">
+                                    <div class="spinner-border text-info" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                </div>
+                                <div id="no-medication-reminders-message" style="display: none;" class="text-center py-3">
+                                    <p class="text-muted">
+                                        <i class="bi bi-info-circle"></i> 暂无药物提醒
+                                    </p>
+                                </div>
+                                <div id="medication-reminders-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-calendar-event"></i> 预约提醒
+                                    <span class="badge bg-light text-dark" id="appointment-count">0</span>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-light" id="add-appointment-reminder-btn">
+                                        <i class="bi bi-plus-circle"></i> 添加提醒
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="appointment-reminders-loading" class="text-center py-3">
+                                    <div class="spinner-border text-warning" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                </div>
+                                <div id="no-appointment-reminders-message" style="display: none;" class="text-center py-3">
+                                    <p class="text-muted">
+                                        <i class="bi bi-info-circle"></i> 暂无预约提醒
+                                    </p>
+                                </div>
+                                <div id="appointment-reminders-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 添加提醒模态框 -->
+    <div class="modal fade" id="addReminderModal" tabindex="-1" aria-labelledby="addReminderModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addReminderModalLabel">添加提醒</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-reminder-form">
+                        <div class="mb-3">
+                            <label for="reminder-type" class="form-label">提醒类型</label>
+                            <select class="form-select" id="reminder-type" required>
+                                <option value="medication">药物提醒</option>
+                                <option value="appointment">预约提醒</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reminder-title" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="reminder-title" placeholder="例如：服用降压药" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reminder-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="reminder-description" rows="2" placeholder="例如：每天早餐后服用"></textarea>
+                        </div>
+                        
+                        <div class="mb-3" id="medication-record-container">
+                            <label for="medication-record-id" class="form-label">关联的药物记录</label>
+                            <select class="form-select" id="medication-record-id">
+                                <option value="">-- 请选择药物记录 --</option>
+                                <!-- 药物记录将通过JavaScript动态加载 -->
+                            </select>
+                            <div class="form-text">如果没有适合的药物记录，可以不选择</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="reminder-add-date" class="form-label">日期</label>
+                                <input type="date" class="form-control" id="reminder-add-date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="reminder-time" class="form-label">时间</label>
+                                <input type="time" class="form-control" id="reminder-time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reminder-recurrence" class="form-label">重复</label>
+                            <select class="form-select" id="reminder-recurrence">
+                                <option value="">不重复</option>
+                                <option value="daily">每天</option>
+                                <option value="weekly">每周</option>
+                                <option value="monthly">每月</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="add-reminder-btn">添加提醒</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑提醒模态框 -->
+    <div class="modal fade" id="editReminderModal" tabindex="-1" aria-labelledby="editReminderModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editReminderModalLabel">编辑提醒</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-reminder-form">
+                        <input type="hidden" id="edit-reminder-id">
+                        <input type="hidden" id="edit-reminder-type">
+                        
+                        <div class="mb-3">
+                            <label for="edit-reminder-title" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="edit-reminder-title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit-reminder-description" class="form-label">描述</label>
+                            <textarea class="form-control" id="edit-reminder-description" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-reminder-date" class="form-label">日期</label>
+                                <input type="date" class="form-control" id="edit-reminder-date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="edit-reminder-time" class="form-label">时间</label>
+                                <input type="time" class="form-control" id="edit-reminder-time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="edit-reminder-recurrence" class="form-label">重复</label>
+                            <select class="form-select" id="edit-reminder-recurrence">
+                                <option value="">不重复</option>
+                                <option value="daily">每天</option>
+                                <option value="weekly">每周</option>
+                                <option value="monthly">每月</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="edit-reminder-completed">
+                            <label class="form-check-label" for="edit-reminder-completed">
+                                标记为已完成
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="delete-reminder-btn">删除</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="save-reminder-btn">保存修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取JWT令牌
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                alert('请先登录系统');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 设置当前日期
+            const today = new Date();
+            document.getElementById('reminder-date').valueAsDate = today;
+            
+            // 加载提醒
+            loadReminders(token, today.toISOString().split('T')[0]);
+            
+            // 加载药物记录
+            loadMedicationRecords(token);
+            
+            // 设置切换提醒类型的事件
+            document.getElementById('reminder-type').addEventListener('change', function() {
+                const medicationRecordContainer = document.getElementById('medication-record-container');
+                const modalTitle = document.getElementById('addReminderModalLabel');
+                
+                if (this.value === 'medication') {
+                    medicationRecordContainer.style.display = 'block';
+                    modalTitle.textContent = '添加药物提醒';
+                } else {
+                    medicationRecordContainer.style.display = 'none';
+                    modalTitle.textContent = '添加预约提醒';
+                }
+            });
+            
+            // 设置日期切换按钮事件
+            document.getElementById('load-date-btn').addEventListener('click', function() {
+                const dateInput = document.getElementById('reminder-date');
+                if (dateInput.value) {
+                    loadReminders(token, dateInput.value);
+                }
+            });
+            
+            // 设置添加提醒按钮事件
+            document.getElementById('add-reminder-btn').addEventListener('click', function() {
+                addReminder(token);
+            });
+            
+            // 设置保存修改按钮事件
+            document.getElementById('save-reminder-btn').addEventListener('click', function() {
+                updateReminder(token);
+            });
+            
+            // 设置删除提醒按钮事件
+            document.getElementById('delete-reminder-btn').addEventListener('click', function() {
+                deleteReminder(token);
+            });
+            
+            // 设置自动生成药物提醒按钮事件
+            document.getElementById('generate-medication-reminders-btn').addEventListener('click', function() {
+                generateMedicationReminders(token);
+            });
+            
+            // 设置添加药物提醒按钮事件
+            document.getElementById('add-medication-reminder-btn').addEventListener('click', function() {
+                // 设置默认日期为当前选择的日期
+                document.getElementById('reminder-add-date').value = document.getElementById('reminder-date').value;
+                // 设置类型为药物提醒
+                document.getElementById('reminder-type').value = 'medication';
+                // 显示药物记录选择框
+                document.getElementById('medication-record-container').style.display = 'block';
+                // 加载药物记录数据
+                loadMedicationRecords(token);
+                // 设置模态框标题
+                document.getElementById('addReminderModalLabel').textContent = '添加药物提醒';
+                // 打开模态框
+                const modal = new bootstrap.Modal(document.getElementById('addReminderModal'));
+                modal.show();
+            });
+            
+            // 设置添加预约提醒按钮事件
+            document.getElementById('add-appointment-reminder-btn').addEventListener('click', function() {
+                // 设置默认日期为当前选择的日期
+                document.getElementById('reminder-add-date').value = document.getElementById('reminder-date').value;
+                // 设置类型为预约提醒
+                document.getElementById('reminder-type').value = 'appointment';
+                // 隐藏药物记录选择框
+                document.getElementById('medication-record-container').style.display = 'none';
+                // 设置模态框标题
+                document.getElementById('addReminderModalLabel').textContent = '添加预约提醒';
+                // 打开模态框
+                const modal = new bootstrap.Modal(document.getElementById('addReminderModal'));
+                modal.show();
+            });
+            
+            // 设置退出登录
+            document.getElementById('logout-link').addEventListener('click', function() {
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login';
+            });
+        });
+        
+        // 加载提醒
+        function loadReminders(token, date) {
+            // 显示加载状态
+            document.getElementById('medication-reminders-loading').style.display = 'block';
+            document.getElementById('appointment-reminders-loading').style.display = 'block';
+            document.getElementById('no-medication-reminders-message').style.display = 'none';
+            document.getElementById('no-appointment-reminders-message').style.display = 'none';
+            document.getElementById('medication-reminders-list').innerHTML = '';
+            document.getElementById('appointment-reminders-list').innerHTML = '';
+            
+            fetch(`/api/health-report/reminders?date=${date}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`获取提醒失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取提醒成功:', data);
+                
+                // 隐藏加载状态
+                document.getElementById('medication-reminders-loading').style.display = 'none';
+                document.getElementById('appointment-reminders-loading').style.display = 'none';
+                
+                // 分类处理提醒
+                const medicationReminders = data.data.filter(r => r.reminder_type === 'medication');
+                // 使用更宽泛的条件来识别预约提醒
+                const appointmentReminders = data.data.filter(r => {
+                    // 明确是预约类型或者不是药物类型都视为预约提醒
+                    return r.reminder_type === 'appointment' || 
+                           (r.reminder_type !== 'medication' && !r.medication_record_id);
+                });
+                
+                // 输出调试信息
+                console.log('药物提醒数量:', medicationReminders.length, medicationReminders);
+                console.log('预约提醒数量:', appointmentReminders.length, appointmentReminders);
+                
+                // 更新计数
+                document.getElementById('medication-count').textContent = medicationReminders.length;
+                document.getElementById('appointment-count').textContent = appointmentReminders.length;
+                
+                // 处理药物提醒
+                if (medicationReminders.length === 0) {
+                    document.getElementById('no-medication-reminders-message').style.display = 'block';
+                } else {
+                    renderReminderList(medicationReminders, 'medication-reminders-list', 'info');
+                }
+                
+                // 处理预约提醒
+                if (appointmentReminders.length === 0) {
+                    document.getElementById('no-appointment-reminders-message').style.display = 'block';
+                } else {
+                    renderReminderList(appointmentReminders, 'appointment-reminders-list', 'warning');
+                }
+                
+                // 确保提醒显示正确
+                ensureRemindersDisplayed(data, token, date);
+                
+                // 额外检查：如果添加了预约提醒但页面未显示，延迟后重新尝试渲染
+                setTimeout(() => {
+                    const appointmentList = document.getElementById('appointment-reminders-list');
+                    if (appointmentReminders.length > 0 && appointmentList.innerHTML === '') {
+                        console.log('延迟后重新渲染预约提醒列表');
+                        renderReminderList(appointmentReminders, 'appointment-reminders-list', 'warning');
+                        document.getElementById('no-appointment-reminders-message').style.display = 'none';
+                    }
+                }, 500);
+            })
+            .catch(error => {
+                console.error('获取提醒错误:', error);
+                
+                // 隐藏加载状态
+                document.getElementById('medication-reminders-loading').style.display = 'none';
+                document.getElementById('appointment-reminders-loading').style.display = 'none';
+                
+                // 显示错误信息
+                document.getElementById('medication-reminders-list').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 加载药物提醒失败: ${error.message}
+                    </div>
+                `;
+                document.getElementById('appointment-reminders-list').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 加载预约提醒失败: ${error.message}
+                    </div>
+                `;
+            });
+        }
+        
+        // 渲染提醒列表
+        function renderReminderList(reminders, containerId, colorClass) {
+            const container = document.getElementById(containerId);
+            
+            // 调试信息
+            console.log(`渲染提醒列表: ${containerId}`, reminders);
+            console.log(`容器元素: ${containerId}`, container);
+            
+            // 验证参数
+            if (!container) {
+                console.error(`找不到容器元素: ${containerId}`);
+                return;
+            }
+            
+            if (!Array.isArray(reminders)) {
+                console.error('提醒列表不是数组', reminders);
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            // 如果没有提醒，显示对应的消息
+            if (reminders.length === 0) {
+                const messageId = containerId === 'medication-reminders-list' ? 
+                    'no-medication-reminders-message' : 'no-appointment-reminders-message';
+                document.getElementById(messageId).style.display = 'block';
+                return;
+            }
+            
+            // 按时间排序
+            reminders.sort((a, b) => {
+                const timeA = a.reminder_time ? new Date(`1970-01-01T${a.reminder_time}`) : 0;
+                const timeB = b.reminder_time ? new Date(`1970-01-01T${b.reminder_time}`) : 0;
+                return timeA - timeB;
+            });
+            
+            // 渲染每个提醒
+            reminders.forEach(reminder => {
+                const reminderItem = document.createElement('div');
+                reminderItem.classList.add('reminder-item', `bg-${colorClass}-subtle`);
+                if (reminder.is_completed) {
+                    reminderItem.classList.add('reminder-completed');
+                }
+                
+                const time = reminder.reminder_time ? reminder.reminder_time.substring(0, 5) : '--:--';
+                const recurrenceText = getRecurrenceText(reminder.recurrence);
+                
+                reminderItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="reminder-time">${time}</span>
+                            ${recurrenceText ? `<span class="badge bg-${colorClass} rounded-pill reminder-badge ms-2">${recurrenceText}</span>` : ''}
+                            ${reminder.is_completed ? '<span class="badge bg-secondary rounded-pill reminder-badge ms-2">已完成</span>' : ''}
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-${colorClass} edit-reminder-btn" 
+                                data-reminder-id="${reminder.id}" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#editReminderModal">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            ${!reminder.is_completed ? `
+                                <button class="btn btn-sm btn-outline-success complete-reminder-btn" 
+                                    data-reminder-id="${reminder.id}">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <h5 class="mt-2">${reminder.title}</h5>
+                    ${reminder.description ? `<p class="text-muted mb-0">${reminder.description}</p>` : ''}
+                `;
+                
+                container.appendChild(reminderItem);
+                
+                // 添加编辑按钮事件
+                const editButton = reminderItem.querySelector('.edit-reminder-btn');
+                if (editButton) {
+                    editButton.addEventListener('click', function() {
+                        openEditReminderModal(reminder);
+                    });
+                }
+                
+                // 添加完成按钮事件
+                const completeButton = reminderItem.querySelector('.complete-reminder-btn');
+                if (completeButton) {
+                    completeButton.addEventListener('click', function() {
+                        markReminderAsCompleted(this.getAttribute('data-reminder-id'));
+                    });
+                }
+            });
+        }
+        
+        // 获取重复文本
+        function getRecurrenceText(recurrence) {
+            switch (recurrence) {
+                case 'daily': return '每天';
+                case 'weekly': return '每周';
+                case 'monthly': return '每月';
+                default: return '';
+            }
+        }
+        
+        // 加载药物记录
+        function loadMedicationRecords(token) {
+            // 先清空并显示加载中
+            const medicationRecordSelect = document.getElementById('medication-record-id');
+            medicationRecordSelect.innerHTML = '<option value="">-- 加载中... --</option>';
+            
+            fetch('/api/medication/records', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`获取药物记录失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取到的药物记录响应:', data);  // 添加调试信息
+                medicationRecordSelect.innerHTML = '<option value="">-- 请选择药物记录 --</option>';
+                
+                // 检查API响应结构，适应不同格式
+                let records = [];
+                if (data.success) {
+                    if (Array.isArray(data.records)) {
+                        records = data.records;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        records = data.data;
+                    }
+                }
+                
+                if (records && records.length > 0) {
+                    console.log('加载到药物记录:', records.length, records);
+                    
+                    records.forEach(record => {
+                        try {
+                            const option = document.createElement('option');
+                            option.value = record.id;
+                            
+                            // 尝试获取药物名称，适应不同的字段命名
+                            const medName = record.medication_name || record.name || '未命名药物';
+                            // 尝试获取药物剂量信息，适应不同的字段命名
+                            const dosage = record.dosage || '';
+                            const dosageUnit = record.dosage_unit || '';
+                            // 尝试获取日期，适应不同的日期格式
+                            let recordDate = '';
+                            if (record.record_date) {
+                                recordDate = typeof record.record_date === 'string' 
+                                    ? record.record_date 
+                                    : formatDate(record.record_date);
+                            }
+                            
+                            option.textContent = `${medName} - ${dosage}${dosageUnit} (${recordDate})`;
+                            medicationRecordSelect.appendChild(option);
+                        } catch (err) {
+                            console.error('处理药物记录选项时出错:', err, record);
+                        }
+                    });
+                } else {
+                    console.log('未找到药物记录或加载失败');
+                    // 添加一个提示选项
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "未找到药物记录，您可以直接添加提醒";
+                    option.disabled = true;
+                    medicationRecordSelect.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error('获取药物记录错误:', error);
+                medicationRecordSelect.innerHTML = '<option value="">-- 加载失败 --</option>';
+                
+                // 添加一个提示选项
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "加载记录失败，您可以直接添加提醒";
+                medicationRecordSelect.appendChild(option);
+            });
+        }
+        
+        // 添加提醒
+        function addReminder(token) {
+            const type = document.getElementById('reminder-type').value;
+            const title = document.getElementById('reminder-title').value;
+            const description = document.getElementById('reminder-description').value;
+            const date = document.getElementById('reminder-add-date').value;
+            const time = document.getElementById('reminder-time').value;
+            const recurrence = document.getElementById('reminder-recurrence').value;
+            
+            // 验证必填字段
+            if (!date || !time) {
+                alert('请填写日期和时间');
+                return;
+            }
+            
+            // 确保标题存在
+            let finalTitle = title;
+            if (!finalTitle) {
+                if (type === 'medication') {
+                    finalTitle = '药物提醒';
+                } else {
+                    finalTitle = '预约提醒';
+                }
+            }
+            
+            // 构建请求数据
+            const requestData = {
+                reminder_type: type,
+                title: finalTitle,
+                description: description,
+                reminder_date: date,
+                reminder_time: time,
+                recurrence: recurrence
+            };
+            
+            // 如果是药物提醒，添加药物记录ID
+            if (type === 'medication') {
+                const medicationRecordId = document.getElementById('medication-record-id').value;
+                if (medicationRecordId && medicationRecordId.trim() !== '') {
+                    try {
+                        const id = parseInt(medicationRecordId);
+                        if (!isNaN(id) && id > 0) {
+                            requestData.medication_record_id = id;
+                        } else {
+                            console.warn('药物记录ID无效:', medicationRecordId);
+                        }
+                    } catch (e) {
+                        console.warn('解析药物记录ID出错:', e);
+                    }
+                }
+            }
+            
+            console.log('提交的提醒数据:', requestData);
+            
+            // 显示提交中状态
+            const addButton = document.getElementById('add-reminder-btn');
+            const originalBtnText = addButton.textContent;
+            addButton.disabled = true;
+            addButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 提交中...';
+            
+            fetch('/api/health-report/reminders', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                // 检查HTTP状态码
+                if (response.status === 500) {
+                    // 如果服务器错误，检查是否是外键约束问题
+                    return response.json().then(errorData => {
+                        console.error('服务器错误:', errorData);
+                        
+                        // 如果是外键约束错误，尝试不带medication_record_id重新提交
+                        if (errorData.message && errorData.message.includes('foreign key constraint fails')) {
+                            console.log('检测到外键约束错误，尝试不带药物记录ID重新提交');
+                            
+                            // 移除药物记录ID
+                            delete requestData.medication_record_id;
+                            
+                            // 重新提交
+                            return fetch('/api/health-report/reminders', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(requestData)
+                            });
+                        }
+                        
+                        // 如果不是外键问题，则抛出原始错误
+                        throw new Error(errorData.message || '创建提醒失败');
+                    });
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`创建提醒失败: ${response.status}`);
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                // 检查返回的数据是否是JSON
+                if (!(data instanceof Object)) {
+                    return data.json();
+                }
+                return data;
+            })
+            .then(data => {
+                console.log('创建提醒成功:', data);
+                
+                // 隐藏模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addReminderModal'));
+                modal.hide();
+                
+                // 重置表单
+                document.getElementById('add-reminder-form').reset();
+                
+                // 重新加载提醒列表
+                loadReminders(token, document.getElementById('reminder-date').value);
+                
+                // 如果是创建药物提醒，确保它能正确显示
+                if (type === 'medication' && data.success && data.data) {
+                    setTimeout(() => {
+                        console.log('创建药物提醒后额外检查显示');
+                        const reminders = [data.data];
+                        const noMedicationMsg = document.getElementById('no-medication-reminders-message');
+                        const medicationList = document.getElementById('medication-reminders-list');
+                        
+                        // 如果没有内容，则重新渲染
+                        if (noMedicationMsg.style.display === 'block' || medicationList.innerHTML === '') {
+                            document.getElementById('no-medication-reminders-message').style.display = 'none';
+                            renderReminderList(reminders, 'medication-reminders-list', 'info');
+                            document.getElementById('medication-count').textContent = 
+                                (parseInt(document.getElementById('medication-count').textContent) || 0) + 1;
+                        }
+                    }, 800);
+                }
+                
+                // 显示成功消息
+                if (type === 'medication') {
+                    alert('药物提醒创建成功！');
+                } else {
+                    alert('预约提醒创建成功！');
+                }
+            })
+            .catch(error => {
+                console.error('创建提醒错误:', error);
+                alert(`创建提醒失败: ${error.message}`);
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                addButton.disabled = false;
+                addButton.textContent = originalBtnText;
+            });
+        }
+        
+        // 打开编辑提醒模态框
+        function openEditReminderModal(reminder) {
+            document.getElementById('edit-reminder-id').value = reminder.id;
+            document.getElementById('edit-reminder-type').value = reminder.reminder_type;
+            document.getElementById('edit-reminder-title').value = reminder.title;
+            document.getElementById('edit-reminder-description').value = reminder.description || '';
+            document.getElementById('edit-reminder-date').value = reminder.reminder_date;
+            document.getElementById('edit-reminder-time').value = reminder.reminder_time ? reminder.reminder_time.substring(0, 5) : '';
+            document.getElementById('edit-reminder-recurrence').value = reminder.recurrence || '';
+            document.getElementById('edit-reminder-completed').checked = reminder.is_completed;
+        }
+        
+        // 更新提醒
+        function updateReminder(token) {
+            const id = document.getElementById('edit-reminder-id').value;
+            const title = document.getElementById('edit-reminder-title').value;
+            const description = document.getElementById('edit-reminder-description').value;
+            const date = document.getElementById('edit-reminder-date').value;
+            const time = document.getElementById('edit-reminder-time').value;
+            const recurrence = document.getElementById('edit-reminder-recurrence').value;
+            const isCompleted = document.getElementById('edit-reminder-completed').checked;
+            
+            // 验证必填字段
+            if (!title || !date || !time) {
+                alert('请填写标题、日期和时间');
+                return;
+            }
+            
+            // 构建请求数据
+            const requestData = {
+                title: title,
+                description: description,
+                reminder_date: date,
+                reminder_time: time,
+                recurrence: recurrence,
+                is_completed: isCompleted
+            };
+            
+            // 显示提交中状态
+            const saveButton = document.getElementById('save-reminder-btn');
+            const originalBtnText = saveButton.textContent;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+            
+            fetch(`/api/health-report/reminders/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`更新提醒失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('更新提醒成功:', data);
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editReminderModal'));
+                modal.hide();
+                
+                // 重新加载提醒列表
+                loadReminders(token, document.getElementById('reminder-date').value);
+                
+                // 显示成功消息
+                alert('提醒更新成功！');
+            })
+            .catch(error => {
+                console.error('更新提醒错误:', error);
+                alert(`更新提醒失败: ${error.message}`);
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                saveButton.disabled = false;
+                saveButton.textContent = originalBtnText;
+            });
+        }
+        
+        // 删除提醒
+        function deleteReminder(token) {
+            const id = document.getElementById('edit-reminder-id').value;
+            
+            if (confirm('确定要删除此提醒吗？')) {
+                fetch(`/api/health-report/reminders/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`删除提醒失败: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('删除提醒成功:', data);
+                    
+                    // 关闭模态框
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editReminderModal'));
+                    modal.hide();
+                    
+                    // 重新加载提醒列表
+                    loadReminders(token, document.getElementById('reminder-date').value);
+                    
+                    // 显示成功消息
+                    alert('提醒删除成功！');
+                })
+                .catch(error => {
+                    console.error('删除提醒错误:', error);
+                    alert(`删除提醒失败: ${error.message}`);
+                });
+            }
+        }
+        
+        // 标记提醒为已完成
+        function markReminderAsCompleted(reminderId) {
+            const token = localStorage.getItem('jwt_token');
+            
+            fetch(`/api/health-report/reminders/${reminderId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`标记提醒为完成失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('标记提醒为完成成功:', data);
+                
+                // 重新加载提醒列表
+                loadReminders(token, document.getElementById('reminder-date').value);
+            })
+            .catch(error => {
+                console.error('标记提醒为完成错误:', error);
+                alert(`标记提醒为完成失败: ${error.message}`);
+            });
+        }
+        
+        // 自动生成药物提醒
+        function generateMedicationReminders(token) {
+            const date = document.getElementById('reminder-date').value;
+            
+            // 显示生成中状态
+            const generateButton = document.getElementById('generate-medication-reminders-btn');
+            const originalBtnText = generateButton.textContent;
+            generateButton.disabled = true;
+            generateButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 生成中...';
+            
+            fetch('/api/health-report/reminders/generate-medication', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: date
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`生成药物提醒失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('生成药物提醒成功:', data);
+                
+                // 重新加载提醒列表
+                loadReminders(token, date);
+                
+                // 显示成功消息
+                alert(`成功生成 ${data.data.created_count} 个药物提醒！`);
+            })
+            .catch(error => {
+                console.error('生成药物提醒错误:', error);
+                alert(`生成药物提醒失败: ${error.message}`);
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                generateButton.disabled = false;
+                generateButton.textContent = originalBtnText;
+            });
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            
+            return date.toLocaleDateString('zh-CN');
+        }
+        
+        // 检查提醒数据并确保显示
+        function ensureRemindersDisplayed(data, token, date) {
+            if (!data || !data.data) {
+                console.error('提醒数据为空或格式不正确');
+                return;
+            }
+            
+            // 查找预约提醒
+            const appointmentReminders = data.data.filter(r => r.reminder_type === 'appointment');
+            console.log('检查预约提醒:', appointmentReminders);
+            
+            // 如果页面显示没有预约提醒，但实际有数据，强制刷新显示
+            const noAppointmentMsg = document.getElementById('no-appointment-reminders-message');
+            const appointmentList = document.getElementById('appointment-reminders-list');
+            
+            if (appointmentReminders.length > 0 && 
+                (noAppointmentMsg.style.display === 'block' || appointmentList.innerHTML === '')) {
+                console.log('预约提醒存在但未显示，强制刷新');
+                renderReminderList(appointmentReminders, 'appointment-reminders-list', 'warning');
+                document.getElementById('no-appointment-reminders-message').style.display = 'none';
+                document.getElementById('appointment-count').textContent = appointmentReminders.length;
+            }
+        }
+    </script>
+</body>
+</html> 

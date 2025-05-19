@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分享详情 - 个人健康管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #0d6efd;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.75rem 1.5rem;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .share-detail-card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .share-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            background-color: #f8f9fa;
+        }
+        .share-header img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .share-header .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .share-header .username {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .share-header .share-time {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .share-content {
+            padding: 25px;
+        }
+        .share-description {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        .share-data {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .share-actions {
+            display: flex;
+            padding: 15px 25px;
+            border-top: 1px solid #eee;
+            background-color: #f8f9fa;
+        }
+        .share-action-btn {
+            display: flex;
+            align-items: center;
+            margin-right: 25px;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 1.1rem;
+            text-decoration: none;
+        }
+        .share-action-btn:hover {
+            color: #0d6efd;
+        }
+        .share-action-btn i {
+            margin-right: 8px;
+        }
+        .share-action-btn.liked {
+            color: #dc3545;
+        }
+        .comments-section {
+            margin-top: 30px;
+        }
+        .comments-heading {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .comment-form {
+            margin-bottom: 30px;
+        }
+        .comment-list {
+            margin-top: 20px;
+        }
+        .comment-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .comment-user {
+            font-weight: bold;
+        }
+        .comment-time {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .comment-content {
+            margin-bottom: 10px;
+        }
+        .comment-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .comment-action {
+            margin-left: 15px;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .comment-action:hover {
+            color: #0d6efd;
+            text-decoration: underline;
+        }
+        .comment-replies {
+            margin-left: 30px;
+            margin-top: 15px;
+            padding-left: 15px;
+            border-left: 3px solid #eee;
+        }
+        .reply-form {
+            margin-top: 15px;
+            display: none;
+        }
+        .reply-to-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        .content-not-available {
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h1 class="h5">个人健康管理系统</h1>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard" target="_self">
+                                <i class="bi bi-speedometer2"></i> 仪表盘
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health/records" target="_self">
+                                <i class="bi bi-clipboard-pulse"></i> 添加记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/records" target="_self">
+                                <i class="bi bi-journal-text"></i> 所有记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/analysis" target="_self">
+                                <i class="bi bi-pie-chart"></i> 营养分析与运动建议
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health-report" target="_self">
+                                <i class="bi bi-file-earmark-text"></i> 健康报告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reminders" target="_self">
+                                <i class="bi bi-bell"></i> 药物与预约提醒
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/social" target="_self">
+                                <i class="bi bi-people"></i> 社交互动
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)" id="logout-link">
+                                <i class="bi bi-box-arrow-right"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">分享详情</h1>
+                    <a href="/social" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> 返回社交广场
+                    </a>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <!-- 加载指示器 -->
+                        <div class="text-center py-5" id="loading-indicator">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <p class="mt-2">正在加载分享内容...</p>
+                        </div>
+
+                        <!-- 分享详细内容 -->
+                        <div class="share-detail-container d-none">
+                            <div class="share-detail-card">
+                                <div class="share-header">
+                                    <img src="https://ui-avatars.com/api/?name=U&background=0D8ABC&color=fff" alt="用户头像" id="share-user-avatar">
+                                    <div class="user-info">
+                                        <span class="username" id="share-username">用户名</span>
+                                        <span class="share-time" id="share-time">时间</span>
+                                    </div>
+                                </div>
+                                <div class="share-content">
+                                    <div class="share-description" id="share-description">
+                                        <!-- 分享描述 -->
+                                    </div>
+                                    <div class="share-data" id="share-data">
+                                        <!-- 分享的具体内容数据 -->
+                                    </div>
+                                </div>
+                                <div class="share-actions">
+                                    <a href="javascript:void(0)" class="share-action-btn" id="like-btn">
+                                        <i class="bi bi-heart"></i> <span id="likes-count">0</span> 赞
+                                    </a>
+                                    <a href="javascript:void(0)" class="share-action-btn">
+                                        <i class="bi bi-chat-left-text"></i> <span id="comments-count">0</span> 评论
+                                    </a>
+                                    <a href="javascript:void(0)" class="share-action-btn">
+                                        <i class="bi bi-share"></i> 分享
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- 评论区域 -->
+                            <div class="comments-section">
+                                <h3 class="comments-heading">评论 <span id="comments-count-heading">0</span></h3>
+                                
+                                <!-- 发表评论 -->
+                                <div class="comment-form">
+                                    <form id="comment-form">
+                                        <input type="hidden" id="parent-comment-id" value="">
+                                        <div class="mb-3">
+                                            <textarea class="form-control" id="comment-content" rows="3" placeholder="写下你的评论..."></textarea>
+                                        </div>
+                                        <div class="d-flex justify-content-end">
+                                            <button type="submit" class="btn btn-primary" id="post-comment">发布评论</button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- 评论列表 -->
+                                <div class="comment-list" id="comment-list">
+                                    <!-- 评论将通过JavaScript动态添加 -->
+                                    <div class="text-center py-3" id="comments-loading">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                        <span class="ms-2">加载评论中...</span>
+                                    </div>
+                                    <div class="text-center py-3 d-none" id="no-comments">
+                                        <p class="text-muted">暂无评论，快来发表你的看法吧！</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 内容不可用时显示 -->
+                        <div class="content-not-available d-none" id="content-not-available">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: #dc3545;"></i>
+                            <h4 class="mt-3">内容不可用</h4>
+                            <p class="text-muted">该分享可能已被删除或您没有权限查看</p>
+                            <a href="/social" class="btn btn-outline-primary mt-3">返回社交广场</a>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 回复评论的模态框 -->
+    <div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="replyModalLabel">回复评论</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="reply-to-info" id="reply-to-info">
+                        回复给: <span id="reply-to-username">用户名</span>
+                    </div>
+                    <form id="reply-form">
+                        <input type="hidden" id="reply-parent-id">
+                        <div class="mb-3">
+                            <textarea class="form-control" id="reply-content" rows="3" placeholder="写下你的回复..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="submit-reply">发送回复</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/locale/zh-cn.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/share_detail.js"></script>
+</body>
+</html> 

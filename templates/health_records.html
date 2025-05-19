@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>健康记录 - 个人健康管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsonschema@1.4.1/lib/index.js"></script>
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #0d6efd;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.75rem 1.5rem;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .tab-pane {
+            padding: 20px 0;
+        }
+        .card-form {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .card-form:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .form-floating {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h1 class="h5">个人健康管理系统</h1>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard" target="_self">
+                                <i class="bi bi-speedometer2"></i> 仪表盘
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/health/records" target="_self">
+                                <i class="bi bi-clipboard-pulse"></i> 添加记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/records" target="_self">
+                                <i class="bi bi-journal-text"></i> 所有记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/analysis" target="_self">
+                                <i class="bi bi-pie-chart"></i> 营养分析与运动建议
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health-report" target="_self">
+                                <i class="bi bi-file-earmark-text"></i> 健康报告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reminders" target="_self">
+                                <i class="bi bi-bell"></i> 药物与预约提醒
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/social" target="_self">
+                                <i class="bi bi-people"></i> 社交互动
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)" id="logout-link">
+                                <i class="bi bi-box-arrow-right"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">添加健康记录</h1>
+                    <button class="btn btn-outline-primary" onclick="showImportComingSoon()">
+                        <i class="bi bi-phone me-2"></i>从智能设备导入数据
+                    </button>
+                </div>
+
+                <!-- 记录类型选择导航 -->
+                <ul class="nav nav-tabs mb-4" id="recordTypeTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="health-tab" data-bs-toggle="tab" data-bs-target="#health-panel" type="button" role="tab" aria-controls="health-panel" aria-selected="true">
+                            <i class="bi bi-graph-up me-2"></i>健康指标
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="diet-tab" data-bs-toggle="tab" data-bs-target="#diet-panel" type="button" role="tab" aria-controls="diet-panel" aria-selected="false">
+                            <i class="bi bi-egg-fried me-2"></i>饮食记录
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="exercise-tab" data-bs-toggle="tab" data-bs-target="#exercise-panel" type="button" role="tab" aria-controls="exercise-panel" aria-selected="false">
+                            <i class="bi bi-bicycle me-2"></i>运动记录
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="water-tab" data-bs-toggle="tab" data-bs-target="#water-panel" type="button" role="tab" aria-controls="water-panel" aria-selected="false">
+                            <i class="bi bi-cup me-2"></i>饮水记录
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="medication-tab" data-bs-toggle="tab" data-bs-target="#medication-panel" type="button" role="tab" aria-controls="medication-panel" aria-selected="false">
+                            <i class="bi bi-capsule me-2"></i>服药记录
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- 记录表单内容区域 -->
+                <div class="tab-content" id="recordTypeContent">
+                    <!-- 健康指标记录表单 -->
+                    <div class="tab-pane fade show active" id="health-panel" role="tabpanel" aria-labelledby="health-tab">
+                        <div class="row justify-content-center">
+                    <div class="col-md-10">
+                        <div class="card card-form">
+                            <div class="card-header bg-primary text-white d-flex align-items-center">
+                                        <i class="bi bi-graph-up me-2"></i>健康指标记录
+                            </div>
+                            <div class="card-body">
+                                        <form id="health-metrics-form" class="record-form">
+                                            <!-- 日期字段 -->
+                                    <div class="form-floating mb-4">
+                                                <input type="date" class="form-control record-date" id="health-date" name="record_date" value="">
+                                        <label for="health-date"><i class="bi bi-calendar3 me-1"></i>记录日期</label>
+                                    </div>
+                                    
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.1" class="form-control" id="weight" name="weight" placeholder="体重">
+                                                    <label for="weight"><i class="bi bi-speedometer2 me-1"></i>体重 (kg)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.1" class="form-control" id="height" name="height" placeholder="身高">
+                                                    <label for="height"><i class="bi bi-arrows-vertical me-1"></i>身高 (cm)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.01" class="form-control" id="bmi" name="bmi" readonly>
+                                                    <label for="bmi"><i class="bi bi-calculator me-1"></i>BMI (自动计算)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.01" class="form-control" id="body-fat" name="body_fat" readonly>
+                                                    <label for="body-fat"><i class="bi bi-droplet me-1"></i>体脂率 (自动计算)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="blood-pressure-systolic" name="blood_pressure_systolic" placeholder="收缩压">
+                                                    <label for="blood-pressure-systolic"><i class="bi bi-heart-pulse me-1"></i>收缩压 (mmHg)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="blood-pressure-diastolic" name="blood_pressure_diastolic" placeholder="舒张压">
+                                                    <label for="blood-pressure-diastolic"><i class="bi bi-heart-pulse me-1"></i>舒张压 (mmHg)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="heart-rate" name="heart_rate" placeholder="心率">
+                                                    <label for="heart-rate"><i class="bi bi-heart me-1"></i>心率 (bpm)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.1" class="form-control" id="blood-sugar" name="blood_sugar" placeholder="血糖">
+                                                    <label for="blood-sugar"><i class="bi bi-droplet-half me-1"></i>血糖 (mmol/L)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="steps" name="steps" placeholder="步数">
+                                                    <label for="steps"><i class="bi bi-walk me-1"></i>步数</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.1" class="form-control" id="sleep-hours" name="sleep_hours" placeholder="睡眠时间">
+                                                    <label for="sleep-hours"><i class="bi bi-moon me-1"></i>睡眠时间 (小时)</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                            
+                                            <!-- 备注字段 -->
+                                            <div class="form-floating mt-3">
+                                                <textarea class="form-control" id="health-notes" name="notes" style="height: 100px"></textarea>
+                                                <label for="health-notes"><i class="bi bi-pencil me-1"></i>备注</label>
+                                    </div>
+                                    
+                                            <!-- 提交按钮和消息显示区域 -->
+                                            <div class="mt-4">
+                                                <div id="health-message" class="form-message"></div>
+                                                <button type="submit" class="btn btn-primary w-100">
+                                                    <i class="bi bi-save me-2"></i>保存健康指标记录
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 饮食记录表单 -->
+                    <div class="tab-pane fade" id="diet-panel" role="tabpanel" aria-labelledby="diet-tab">
+                        <div class="row justify-content-center">
+                            <div class="col-md-10">
+                                <div class="card card-form">
+                                    <div class="card-header bg-success text-white d-flex align-items-center">
+                                            <i class="bi bi-egg-fried me-2"></i>饮食记录
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="diet-form" class="record-form">
+                                            <!-- 日期字段 -->
+                                            <div class="form-floating mb-4">
+                                                <input type="date" class="form-control record-date" id="diet-date" name="record_date" value="">
+                                                <label for="diet-date"><i class="bi bi-calendar3 me-1"></i>记录日期</label>
+                                            </div>
+                                            
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <select class="form-select" id="meal-type" name="meal_type">
+                                                        <option value="早餐">早餐</option>
+                                                        <option value="午餐">午餐</option>
+                                                        <option value="晚餐">晚餐</option>
+                                                        <option value="加餐">加餐</option>
+                                                    </select>
+                                                    <label for="meal-type"><i class="bi bi-clock me-1"></i>餐次</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="text" class="form-control" id="food-name" name="food_name" placeholder="食物名称">
+                                                    <label for="food-name"><i class="bi bi-basket me-1"></i>食物名称</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="food-amount" name="amount" placeholder="食物量">
+                                                    <label for="food-amount"><i class="bi bi-scale me-1"></i>食物量 (克)</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                            
+                                            <!-- 备注字段 -->
+                                            <div class="form-floating mt-3">
+                                                <textarea class="form-control" id="diet-notes" name="notes" style="height: 100px"></textarea>
+                                                <label for="diet-notes"><i class="bi bi-pencil me-1"></i>备注</label>
+                                    </div>
+                                    
+                                            <!-- 提交按钮和消息显示区域 -->
+                                            <div class="mt-4">
+                                                <div id="diet-message" class="form-message"></div>
+                                                <button type="submit" class="btn btn-success w-100">
+                                                    <i class="bi bi-save me-2"></i>保存饮食记录
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 运动记录表单 -->
+                    <div class="tab-pane fade" id="exercise-panel" role="tabpanel" aria-labelledby="exercise-tab">
+                        <div class="row justify-content-center">
+                            <div class="col-md-10">
+                                <div class="card card-form">
+                                    <div class="card-header bg-danger text-white d-flex align-items-center">
+                                            <i class="bi bi-bicycle me-2"></i>运动记录
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="exercise-form" class="record-form">
+                                            <!-- 日期字段 -->
+                                            <div class="form-floating mb-4">
+                                                <input type="date" class="form-control record-date" id="exercise-date" name="record_date" value="">
+                                                <label for="exercise-date"><i class="bi bi-calendar3 me-1"></i>记录日期</label>
+                                            </div>
+                                            
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <select class="form-select" id="exercise-type" name="exercise_type">
+                                                        <option value="" disabled selected>加载中...</option>
+                                                    </select>
+                                                    <label for="exercise-type"><i class="bi bi-list-check me-1"></i>运动类型</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="duration" name="duration" placeholder="时间">
+                                                    <label for="duration"><i class="bi bi-clock-history me-1"></i>运动时长 (分钟)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <select class="form-select" id="intensity" name="intensity">
+                                                        <option value="低">低强度</option>
+                                                        <option value="中" selected>中等强度</option>
+                                                        <option value="高">高强度</option>
+                                                    </select>
+                                                    <label for="intensity"><i class="bi bi-lightning-charge me-1"></i>运动强度</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="calories-burned" name="calories_burned" placeholder="卡路里">
+                                                    <label for="calories-burned"><i class="bi bi-fire me-1"></i>消耗卡路里 (可选)</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                            
+                                            <!-- 备注字段 -->
+                                            <div class="form-floating mt-3">
+                                                <textarea class="form-control" id="exercise-notes" name="notes" style="height: 100px"></textarea>
+                                                <label for="exercise-notes"><i class="bi bi-pencil me-1"></i>备注</label>
+                                    </div>
+                                    
+                                            <!-- 提交按钮和消息显示区域 -->
+                                            <div class="mt-4">
+                                                <div id="exercise-message" class="form-message"></div>
+                                                <button type="submit" class="btn btn-danger w-100">
+                                                    <i class="bi bi-save me-2"></i>保存运动记录
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 饮水记录表单 -->
+                    <div class="tab-pane fade" id="water-panel" role="tabpanel" aria-labelledby="water-tab">
+                        <div class="row justify-content-center">
+                            <div class="col-md-10">
+                                <div class="card card-form">
+                                    <div class="card-header bg-info text-white d-flex align-items-center">
+                                            <i class="bi bi-cup me-2"></i>饮水记录
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="water-form" class="record-form">
+                                            <!-- 日期字段 -->
+                                            <div class="form-floating mb-4">
+                                                <input type="date" class="form-control record-date" id="water-date" name="record_date" value="">
+                                                <label for="water-date"><i class="bi bi-calendar3 me-1"></i>记录日期</label>
+                                            </div>
+                                            
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="time" class="form-control" id="water-time" name="intake_time" value="">
+                                                    <label for="water-time"><i class="bi bi-clock me-1"></i>饮水时间</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="water-amount" name="amount" placeholder="饮水量">
+                                                    <label for="water-amount"><i class="bi bi-droplet me-1"></i>饮水量 (毫升)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <select class="form-select" id="water-type" name="water_type">
+                                                        <option value="普通水">普通水</option>
+                                                        <option value="矿泉水">矿泉水</option>
+                                                        <option value="纯净水">纯净水</option>
+                                                        <option value="茶">茶</option>
+                                                        <option value="其他">其他</option>
+                                                    </select>
+                                                    <label for="water-type"><i class="bi bi-cup-straw me-1"></i>水的类型</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                            
+                                            <!-- 备注字段 -->
+                                            <div class="form-floating mt-3">
+                                                <textarea class="form-control" id="water-notes" name="notes" style="height: 100px"></textarea>
+                                                <label for="water-notes"><i class="bi bi-pencil me-1"></i>备注</label>
+                                    </div>
+                                    
+                                            <!-- 提交按钮和消息显示区域 -->
+                                            <div class="mt-4">
+                                                <div id="water-message" class="form-message"></div>
+                                                <button type="submit" class="btn btn-info w-100">
+                                                    <i class="bi bi-save me-2"></i>保存饮水记录
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 服药记录表单 -->
+                    <div class="tab-pane fade" id="medication-panel" role="tabpanel" aria-labelledby="medication-tab">
+                        <div class="row justify-content-center">
+                            <div class="col-md-10">
+                                <div class="card card-form">
+                                    <div class="card-header bg-warning text-dark d-flex align-items-center">
+                                            <i class="bi bi-capsule me-2"></i>服药记录
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="medication-form" class="record-form">
+                                            <!-- 日期字段 -->
+                                            <div class="form-floating mb-4">
+                                                <input type="date" class="form-control record-date" id="medication-date" name="record_date" value="">
+                                                <label for="medication-date"><i class="bi bi-calendar3 me-1"></i>记录日期</label>
+                                            </div>
+                                            
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="time" class="form-control" id="medication-time" name="time_taken" value="">
+                                                    <label for="medication-time"><i class="bi bi-clock me-1"></i>服药时间</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <select class="form-select" id="medication-type" name="medication_type">
+                                                        <option value="" disabled selected>加载中...</option>
+                                                    </select>
+                                                    <label for="medication-type"><i class="bi bi-capsule me-1"></i>药物类型</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.1" class="form-control" id="dosage" name="dosage" placeholder="剂量">
+                                                    <label for="dosage"><i class="bi bi-123 me-1"></i>剂量</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-floating">
+                                                    <select class="form-select" id="dosage-unit" name="dosage_unit">
+                                                        <option value="毫克">毫克</option>
+                                                        <option value="克">克</option>
+                                                        <option value="片">片</option>
+                                                        <option value="毫升">毫升</option>
+                                                        <option value="其他">其他</option>
+                                                    </select>
+                                                    <label for="dosage-unit"><i class="bi bi-rulers me-1"></i>单位</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-floating">
+                                                    <select class="form-select" id="frequency" name="frequency">
+                                                        <option value="一日一次">一日一次</option>
+                                                        <option value="一日两次">一日两次</option>
+                                                        <option value="一日三次">一日三次</option>
+                                                        <option value="需要时服用">需要时服用</option>
+                                                        <option value="其他">其他</option>
+                                                    </select>
+                                                    <label for="frequency"><i class="bi bi-repeat me-1"></i>服用频率</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-check mt-3">
+                                                    <input class="form-check-input" type="checkbox" id="with-food" name="with_food">
+                                                    <label class="form-check-label" for="with-food">
+                                                        <i class="bi bi-egg-fried me-1"></i>与食物一起服用
+                                                    </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                            <!-- 备注字段 -->
+                                    <div class="form-floating mt-3">
+                                                <textarea class="form-control" id="medication-notes" name="notes" style="height: 100px"></textarea>
+                                                <label for="medication-notes"><i class="bi bi-pencil me-1"></i>备注</label>
+                                    </div>
+                                    
+                                    <!-- 提交按钮和消息显示区域 -->
+                                    <div class="mt-4">
+                                                <div id="medication-message" class="form-message"></div>
+                                                <button type="submit" class="btn btn-warning w-100">
+                                                    <i class="bi bi-save me-2"></i>保存服药记录
+                                        </button>
+                                    </div>
+                                </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 当文档加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 验证用户是否登录
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                alert('请先登录');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 设置当前日期为所有日期字段的默认值
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('.record-date').forEach(dateInput => {
+                dateInput.value = today;
+            });
+            
+            // 设置当前时间为默认值
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${hours}:${minutes}`;
+            
+            // 添加时间字段的事件处理
+            if (document.getElementById('water-time')) {
+                document.getElementById('water-time').value = currentTime;
+            }
+            if (document.getElementById('medication-time')) {
+                document.getElementById('medication-time').value = currentTime;
+            }
+            
+            // 绑定计算BMI的事件
+            document.getElementById('weight')?.addEventListener('input', calculateBMI);
+            document.getElementById('height')?.addEventListener('input', calculateBMI);
+            
+            // 绑定表单提交事件
+            document.getElementById('health-metrics-form')?.addEventListener('submit', submitHealthMetricsForm);
+            document.getElementById('diet-form')?.addEventListener('submit', submitDietForm);
+            document.getElementById('exercise-form')?.addEventListener('submit', submitExerciseForm);
+            document.getElementById('water-form')?.addEventListener('submit', submitWaterForm);
+            document.getElementById('medication-form')?.addEventListener('submit', submitMedicationForm);
+            
+            // 加载运动类型
+            loadExerciseTypes();
+            
+            // 加载药物类型
+            loadMedicationTypes();
+            
+            // 退出登录
+            document.getElementById('logout-link').addEventListener('click', function() {
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login';
+            });
+        });
+        
+        // 计算BMI
+        function calculateBMI() {
+            const weight = parseFloat(document.getElementById('weight').value);
+            const height = parseFloat(document.getElementById('height').value);
+            
+            if (weight && height) {
+                const heightInMeters = height / 100;
+                const bmi = weight / (heightInMeters * heightInMeters);
+                document.getElementById('bmi').value = bmi.toFixed(2);
+                
+                // 计算体脂率
+                calculateBodyFat(bmi);
+            } else {
+                document.getElementById('bmi').value = '';
+                document.getElementById('body-fat').value = '';
+            }
+        }
+        
+        // 计算体脂率
+        function calculateBodyFat(bmi) {
+            // 获取用户性别
+            const user = JSON.parse(localStorage.getItem('user'));
+            const gender = user?.gender?.toLowerCase() || 'male';
+            
+            // 使用Deurenberg公式估算体脂率
+            // 体脂率 = (1.20 × BMI) + (0.23 × 年龄) - (10.8 × 性别) - 5.4
+            // 性别：男性=1，女性=0
+            // 年龄：默认使用30岁
+            const age = 30; // 默认年龄
+            const genderFactor = gender === 'male' ? 1 : 0;
+            const bodyFat = (1.20 * bmi) + (0.23 * age) - (10.8 * genderFactor) - 5.4;
+            
+            // 设置体脂率值，保留一位小数
+            document.getElementById('body-fat').value = bodyFat.toFixed(1);
+        }
+        
+        // 提交健康指标记录表单
+        function submitHealthMetricsForm(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('health-metrics-form');
+            const formData = new FormData(form);
+            const messageDiv = document.getElementById('health-message');
+            
+            // 创建健康指标数据对象
+            const healthData = {
+                record_date: formData.get('record_date'),
+                notes: formData.get('notes') || ''
+            };
+            
+            // 提取健康指标数据
+            if (formData.get('weight')) healthData.weight = parseFloat(formData.get('weight'));
+            if (formData.get('height')) healthData.height = parseFloat(formData.get('height'));
+            if (formData.get('bmi')) healthData.bmi = parseFloat(formData.get('bmi'));
+            if (formData.get('body_fat')) healthData.body_fat = parseFloat(formData.get('body_fat'));
+            if (formData.get('blood_pressure_systolic')) healthData.blood_pressure_systolic = parseInt(formData.get('blood_pressure_systolic'));
+            if (formData.get('blood_pressure_diastolic')) healthData.blood_pressure_diastolic = parseInt(formData.get('blood_pressure_diastolic'));
+            if (formData.get('heart_rate')) healthData.heart_rate = parseInt(formData.get('heart_rate'));
+            if (formData.get('blood_sugar')) healthData.blood_sugar = parseFloat(formData.get('blood_sugar'));
+            if (formData.get('steps')) healthData.steps = parseInt(formData.get('steps'));
+            if (formData.get('sleep_hours')) healthData.sleep_hours = parseFloat(formData.get('sleep_hours'));
+            
+            // 显示加载状态
+            messageDiv.innerHTML = '<div class="alert alert-info">正在保存健康指标记录...</div>';
+            
+            // 保存健康指标记录
+            saveRecord('/api/health-metrics/records', healthData)
+                .then(result => {
+                    if (result.success) {
+                        messageDiv.innerHTML = '<div class="alert alert-success">健康指标记录保存成功！</div>';
+                        resetForm(form);
+                    } else {
+                        messageDiv.innerHTML = `<div class="alert alert-danger">保存失败: ${result.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('保存健康指标记录错误:', error);
+                    messageDiv.innerHTML = '<div class="alert alert-danger">保存失败，请稍后再试</div>';
+                });
+        }
+        
+        // 提交饮食记录表单
+        function submitDietForm(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('diet-form');
+            const formData = new FormData(form);
+            const messageDiv = document.getElementById('diet-message');
+            
+            // 创建饮食记录数据对象
+            const dietData = {
+                record_date: formData.get('record_date'),
+                notes: formData.get('notes') || ''
+            };
+            
+            // 提取饮食记录数据
+            if (formData.get('meal_type')) dietData.meal_type = formData.get('meal_type');
+            if (formData.get('food_name')) dietData.food_name = formData.get('food_name');
+            if (formData.get('amount')) dietData.amount = parseFloat(formData.get('amount'));
+            
+            // 检查必填字段
+            if (!dietData.food_name || !dietData.amount) {
+                messageDiv.innerHTML = '<div class="alert alert-warning">请填写食物名称和食物量</div>';
+                return;
+            }
+            
+            // 显示加载状态
+            messageDiv.innerHTML = '<div class="alert alert-info">正在保存饮食记录...</div>';
+            
+            // 保存饮食记录
+            saveRecord('/api/diet/records', dietData)
+                .then(result => {
+                    if (result.success) {
+                        messageDiv.innerHTML = '<div class="alert alert-success">饮食记录保存成功！</div>';
+                        resetForm(form);
+                    } else {
+                        messageDiv.innerHTML = `<div class="alert alert-danger">保存失败: ${result.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('保存饮食记录错误:', error);
+                    messageDiv.innerHTML = '<div class="alert alert-danger">保存失败，请稍后再试</div>';
+                });
+        }
+        
+        // 提交运动记录表单
+        function submitExerciseForm(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('exercise-form');
+            const formData = new FormData(form);
+            const messageDiv = document.getElementById('exercise-message');
+            
+            // 创建运动记录数据对象
+            const exerciseData = {
+                record_date: formData.get('record_date'),
+                notes: formData.get('notes') || ''
+            };
+            
+            // 提取运动记录数据
+            if (formData.get('exercise_type') && formData.get('exercise_type') !== '') exerciseData.exercise_type_id = parseInt(formData.get('exercise_type'));
+            if (formData.get('duration')) exerciseData.duration = parseInt(formData.get('duration'));
+            if (formData.get('intensity')) exerciseData.intensity = formData.get('intensity');
+            if (formData.get('calories_burned')) exerciseData.calories_burned = parseFloat(formData.get('calories_burned'));
+            
+            // 检查必填字段
+            if (!exerciseData.exercise_type_id || !exerciseData.duration) {
+                messageDiv.innerHTML = '<div class="alert alert-warning">请选择运动类型并填写运动时长</div>';
+                return;
+            }
+            
+            // 显示加载状态
+            messageDiv.innerHTML = '<div class="alert alert-info">正在保存运动记录...</div>';
+            
+            // 保存运动记录
+            saveRecord('/api/exercise/records', exerciseData)
+                        .then(result => {
+                    if (result.success) {
+                        messageDiv.innerHTML = '<div class="alert alert-success">运动记录保存成功！</div>';
+                        resetForm(form);
+                    } else {
+                        messageDiv.innerHTML = `<div class="alert alert-danger">保存失败: ${result.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('保存运动记录错误:', error);
+                    messageDiv.innerHTML = '<div class="alert alert-danger">保存失败，请稍后再试</div>';
+                });
+        }
+        
+        // 提交饮水记录表单
+        function submitWaterForm(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('water-form');
+            const formData = new FormData(form);
+            const messageDiv = document.getElementById('water-message');
+            
+            // 创建饮水记录数据对象
+            const waterData = {
+                record_date: formData.get('record_date'),
+                notes: formData.get('notes') || ''
+            };
+            
+            // 提取饮水记录数据
+            if (formData.get('amount')) waterData.amount = parseFloat(formData.get('amount'));
+            if (formData.get('intake_time')) waterData.intake_time = formData.get('intake_time');
+            if (formData.get('water_type')) waterData.water_type = formData.get('water_type');
+            
+            // 检查必填字段
+            if (!waterData.amount) {
+                messageDiv.innerHTML = '<div class="alert alert-warning">请填写饮水量</div>';
+                return;
+            }
+            
+            // 显示加载状态
+            messageDiv.innerHTML = '<div class="alert alert-info">正在保存饮水记录...</div>';
+            
+            // 保存饮水记录
+            saveRecord('/api/water-intake/records', waterData)
+                        .then(result => {
+                    if (result.success) {
+                        messageDiv.innerHTML = '<div class="alert alert-success">饮水记录保存成功！</div>';
+                        resetForm(form);
+                    } else {
+                        messageDiv.innerHTML = `<div class="alert alert-danger">保存失败: ${result.message}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('保存饮水记录错误:', error);
+                    messageDiv.innerHTML = '<div class="alert alert-danger">保存失败，请稍后再试</div>';
+                });
+        }
+        
+        // 提交服药记录表单
+        function submitMedicationForm(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('medication-form');
+            const formData = new FormData(form);
+            const messageDiv = document.getElementById('medication-message');
+            
+            // 创建服药记录数据对象
+            const medicationData = {
+                record_date: formData.get('record_date'),
+                notes: formData.get('notes') || ''
+            };
+            
+            // 提取服药记录数据
+            if (formData.get('medication_type') && formData.get('medication_type') !== '') {
+                medicationData.medication_type_id = parseInt(formData.get('medication_type'));
+                
+                // 获取药物名称
+                const medicationSelect = document.getElementById('medication-type');
+                if (medicationSelect && medicationSelect.selectedIndex >= 0) {
+                    medicationData.medication_name = medicationSelect.options[medicationSelect.selectedIndex].text;
+                }
+            }
+            
+            if (formData.get('time_taken')) medicationData.time_taken = formData.get('time_taken');
+            if (formData.get('dosage')) medicationData.dosage = parseFloat(formData.get('dosage'));
+            if (formData.get('dosage_unit')) medicationData.dosage_unit = formData.get('dosage_unit');
+            if (formData.get('frequency')) medicationData.frequency = formData.get('frequency');
+            medicationData.with_food = document.getElementById('with-food').checked;
+            
+            // 检查必填字段
+            if (!medicationData.medication_type_id || !medicationData.dosage) {
+                messageDiv.innerHTML = '<div class="alert alert-warning">请选择药物类型并填写剂量</div>';
+                return;
+            }
+            
+            // 显示加载状态
+            messageDiv.innerHTML = '<div class="alert alert-info">正在保存服药记录...</div>';
+            
+            console.log('提交的药物记录数据:', medicationData);
+            
+            // 保存服药记录
+                    saveRecord('/api/medication/records', medicationData)
+                        .then(result => {
+                    if (result.success) {
+                        messageDiv.innerHTML = '<div class="alert alert-success">服药记录保存成功！</div>';
+                        resetForm(form);
+                        } else {
+                        messageDiv.innerHTML = `<div class="alert alert-danger">保存失败: ${result.message}</div>`;
+                        }
+                    })
+                    .catch(error => {
+                    console.error('保存服药记录错误:', error);
+                        messageDiv.innerHTML = '<div class="alert alert-danger">保存失败，请稍后再试</div>';
+                    });
+        }
+        
+        // 保存单条记录
+        function saveRecord(url, data) {
+            const token = localStorage.getItem('jwt_token');
+            
+            console.log(`提交到 ${url} 的数据:`, data);
+            
+            return fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log(`保存记录结果 ${url}:`, result);
+                return {
+                    success: result.success || result.message || result.record || result.id ? true : false,
+                    message: result.message || '',
+                    data: result
+                };
+            })
+            .catch(error => {
+                console.error(`保存记录错误 ${url}:`, error);
+                return {
+                    success: false,
+                    message: error.message || '未知错误',
+                    error: error
+                };
+            });
+        }
+        
+        // 重置表单
+        function resetForm(form) {
+            // 保存日期值
+            const dateInput = form.querySelector('.record-date');
+            const dateValue = dateInput ? dateInput.value : '';
+            
+            // 重置表单
+            form.reset();
+            
+            // 恢复日期值
+            if (dateInput) {
+                dateInput.value = dateValue;
+            }
+            
+            // 设置当前时间
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${hours}:${minutes}`;
+            
+            // 如果是水表单，重置水类型
+            if (form.id === 'water-form') {
+            if (document.getElementById('water-time')) {
+                document.getElementById('water-time').value = currentTime;
+            }
+                if (document.getElementById('water-type')) {
+                    document.getElementById('water-type').value = '普通水';
+                }
+            }
+            
+            // 如果是药物表单，重置相关字段
+            if (form.id === 'medication-form') {
+            if (document.getElementById('medication-time')) {
+                document.getElementById('medication-time').value = currentTime;
+                }
+                if (document.getElementById('dosage-unit')) {
+                    document.getElementById('dosage-unit').value = '毫克';
+                }
+                if (document.getElementById('frequency')) {
+                    document.getElementById('frequency').value = '一日一次';
+                }
+            }
+            
+            // 如果是饮食表单，重置餐次
+            if (form.id === 'diet-form') {
+                if (document.getElementById('meal-type')) {
+                    document.getElementById('meal-type').value = '早餐';
+                }
+            }
+            
+            // 如果是运动表单，重置强度
+            if (form.id === 'exercise-form') {
+                if (document.getElementById('intensity')) {
+                    document.getElementById('intensity').value = '中';
+                }
+            }
+        }
+        
+        // 加载运动类型
+        function loadExerciseTypes() {
+            const token = localStorage.getItem('jwt_token');
+            const exerciseTypeSelect = document.getElementById('exercise-type');
+            
+            if (!exerciseTypeSelect) return;
+            
+            fetch('/api/exercise/types', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.data && data.data.length > 0) {
+                    exerciseTypeSelect.innerHTML = '';
+                    data.data.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.id;
+                        option.textContent = type.name;
+                        exerciseTypeSelect.appendChild(option);
+                    });
+                } else if (data.success === false || data.data && data.data.length === 0) {
+                    // 如果没有运动类型数据，尝试初始化
+                    initializeExerciseTypes();
+                } else {
+                    exerciseTypeSelect.innerHTML = '<option value="" disabled selected>没有可用的运动类型</option>';
+                }
+            })
+            .catch(error => {
+                console.error('加载运动类型错误:', error);
+                exerciseTypeSelect.innerHTML = '<option value="" disabled selected>加载失败，将尝试初始化</option>';
+                // 出错时也尝试初始化
+                initializeExerciseTypes();
+            });
+        }
+        
+        // 初始化运动类型
+        function initializeExerciseTypes() {
+            const token = localStorage.getItem('jwt_token');
+            const exerciseTypeSelect = document.getElementById('exercise-type');
+            
+            if (!exerciseTypeSelect) return;
+            
+            // 显示正在初始化
+            exerciseTypeSelect.innerHTML = '<option value="" disabled selected>正在初始化运动类型数据...</option>';
+            
+            fetch('/api/exercise/types/initialize', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    console.log('初始化运动类型成功:', result);
+                    // 初始化成功后重新加载运动类型
+                    setTimeout(() => {
+                        fetch('/api/exercise/types', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.data && data.data.length > 0) {
+                                exerciseTypeSelect.innerHTML = '';
+                                data.data.forEach(type => {
+                                    const option = document.createElement('option');
+                                    option.value = type.id;
+                                    option.textContent = type.name;
+                                    exerciseTypeSelect.appendChild(option);
+                                });
+                            } else {
+                                exerciseTypeSelect.innerHTML = '<option value="" disabled selected>初始化后仍无数据</option>';
+                            }
+                        })
+                        .catch(err => {
+                            console.error('初始化后重新加载运动类型错误:', err);
+                            exerciseTypeSelect.innerHTML = '<option value="" disabled selected>加载失败</option>';
+                        });
+                    }, 1000);
+                } else {
+                    console.error('初始化运动类型失败:', result);
+                    exerciseTypeSelect.innerHTML = '<option value="" disabled selected>初始化失败</option>';
+                }
+            })
+            .catch(error => {
+                console.error('初始化运动类型错误:', error);
+                exerciseTypeSelect.innerHTML = '<option value="" disabled selected>初始化失败</option>';
+            });
+        }
+        
+        // 加载药物类型
+        function loadMedicationTypes() {
+            const token = localStorage.getItem('jwt_token');
+            const medicationTypeSelect = document.getElementById('medication-type');
+            
+            if (!medicationTypeSelect) return;
+            
+            fetch('/api/medication/types', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.medication_types && data.medication_types.length > 0) {
+                    medicationTypeSelect.innerHTML = '';
+                    data.medication_types.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.id;
+                        option.textContent = type.name;
+                        medicationTypeSelect.appendChild(option);
+                    });
+                } else {
+                    medicationTypeSelect.innerHTML = '<option value="" disabled selected>没有可用的药物类型</option>';
+                }
+            })
+            .catch(error => {
+                console.error('加载药物类型错误:', error);
+                medicationTypeSelect.innerHTML = '<option value="" disabled selected>加载失败</option>';
+            });
+        }
+
+        // 显示导入功能提示
+        function showImportComingSoon() {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-info alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                <i class="bi bi-info-circle-fill me-2"></i>此功能正在筹备中
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // 3秒后自动关闭提示
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alertDiv);
+                bsAlert.close();
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

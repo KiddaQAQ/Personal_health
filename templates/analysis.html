@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>营养分析与运动建议 - 个人健康管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsonschema@1.4.1/lib/index.js"></script>
+    <!-- 添加Chart.js和数据标签插件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #0d6efd;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.75rem 1.5rem;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .card-analysis {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            height: 100%;
+        }
+        .card-analysis:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .card-header {
+            font-weight: bold;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .recommendation-item {
+            border-left: 4px solid #0d6efd;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+        .status-optimal {
+            color: green;
+        }
+        .status-warning {
+            color: orange;
+        }
+        .status-danger {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h1 class="h5">个人健康管理系统</h1>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard" target="_self">
+                                <i class="bi bi-speedometer2"></i> 仪表盘
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health/records" target="_self">
+                                <i class="bi bi-clipboard-pulse"></i> 添加记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/records" target="_self">
+                                <i class="bi bi-journal-text"></i> 所有记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/analysis" target="_self">
+                                <i class="bi bi-pie-chart"></i> 营养分析与运动建议
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health-report" target="_self">
+                                <i class="bi bi-file-earmark-text"></i> 健康报告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reminders" target="_self">
+                                <i class="bi bi-bell"></i> 药物与预约提醒
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/social" target="_self">
+                                <i class="bi bi-people"></i> 社交互动
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)" id="logout-link">
+                                <i class="bi bi-box-arrow-right"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">营养分析与运动建议</h1>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            最近7天
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dateRangeDropdown">
+                            <li><a class="dropdown-item date-range-item" href="#" data-days="7">最近7天</a></li>
+                            <li><a class="dropdown-item date-range-item" href="#" data-days="14">最近14天</a></li>
+                            <li><a class="dropdown-item date-range-item" href="#" data-days="30">最近30天</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 分析内容 -->
+                <div class="row mb-4">
+                    <!-- 营养分析卡片 -->
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-pie-chart-fill me-2"></i>营养摄入分析
+                            </div>
+                            <div class="card-body">
+                                <div id="nutrition-loading" class="text-center py-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                    <p class="mt-2">正在分析您的营养摄入数据...</p>
+                                </div>
+                                <div id="nutrition-analysis" class="d-none">
+                                    <div class="row mb-4">
+                                        <div class="col-lg-6">
+                                            <div style="height: 300px;">
+                                                <canvas id="nutrition-chart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <h5 class="border-bottom pb-2 mb-3">分析结果</h5>
+                                            <div id="nutrition-analysis-details"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 运动建议部分 -->
+                <div class="row mb-4">
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-activity me-2"></i>个性化运动建议
+                            </div>
+                            <div class="card-body">
+                                <div id="exercise-loading" class="text-center py-3">
+                                    <div class="spinner-border text-success" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                    <p class="mt-2">正在生成您的运动建议...</p>
+                                </div>
+                                <div id="exercise-recommendations" class="d-none">
+                                    <div id="exercise-stats" class="mb-4"></div>
+                                    <h5 class="border-bottom pb-2 mb-3">运动建议</h5>
+                                    <div id="exercise-plan"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 每日摄入详情部分 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-calendar3 me-2"></i>每日营养摄入详情
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>日期</th>
+                                                <th>热量(kcal)</th>
+                                                <th>蛋白质(g)</th>
+                                                <th>脂肪(g)</th>
+                                                <th>碳水(g)</th>
+                                                <th>纤维素(g)</th>
+                                                <th>糖(g)</th>
+                                                <th>钠(mg)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="daily-nutrition-table"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- 每日营养表格底部添加说明和快捷按钮 -->
+                            <div class="card-footer text-muted">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="bi bi-info-circle me-2"></i>如果您看到的数据都是零，请先添加饮食记录
+                                    </div>
+                                    <a href="/health/records" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-plus-circle me-1"></i>添加饮食记录
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 添加饮食记录快捷表单 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card card-analysis">
+                            <div class="card-header bg-primary text-white d-flex align-items-center">
+                                <i class="bi bi-plus-circle me-2"></i>快速添加饮食记录
+                            </div>
+                            <div class="card-body">
+                                <form id="quick-diet-form" class="row g-3">
+                                    <!-- 基本信息 -->
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="date" class="form-control" id="record-date" value="" required>
+                                            <label for="record-date"><i class="bi bi-calendar3 me-1"></i>日期</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select class="form-select" id="meal-type" required>
+                                                <option value="">请选择...</option>
+                                                <option value="早餐">早餐</option>
+                                                <option value="午餐">午餐</option>
+                                                <option value="晚餐">晚餐</option>
+                                                <option value="加餐">加餐</option>
+                                            </select>
+                                            <label for="meal-type"><i class="bi bi-egg-fried me-1"></i>餐次</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 食物信息 -->
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="food-name" placeholder="例如：米饭、鸡胸肉等" required>
+                                            <label for="food-name"><i class="bi bi-basket me-1"></i>食物名称</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="food-amount" min="0" required>
+                                            <label for="food-amount"><i class="bi bi-scale me-1"></i>食用量(克)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="calories" min="0" required>
+                                            <label for="calories"><i class="bi bi-lightning-charge me-1"></i>热量(kcal)</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 营养成分 -->
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="protein" min="0" step="0.1">
+                                            <label for="protein"><i class="bi bi-droplet me-1"></i>蛋白质(g)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="fat" min="0" step="0.1">
+                                            <label for="fat"><i class="bi bi-droplet-fill me-1"></i>脂肪(g)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="carbs" min="0" step="0.1">
+                                            <label for="carbs"><i class="bi bi-bricks me-1"></i>碳水(g)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="fiber" min="0" step="0.1">
+                                            <label for="fiber"><i class="bi bi-arrow-down-up me-1"></i>纤维素(g)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="sodium" min="0" step="1">
+                                            <label for="sodium"><i class="bi bi-salt me-1"></i>钠(mg)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" id="sugar" min="0" step="0.1">
+                                            <label for="sugar"><i class="bi bi-droplet me-1"></i>糖分 (克)</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 备注字段 -->
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <textarea class="form-control" id="notes" placeholder="备注信息" style="height: 100px;"></textarea>
+                                            <label for="notes"><i class="bi bi-pencil me-1"></i>备注</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 按钮 -->
+                                    <div class="col-12 mt-4">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <button type="button" class="btn btn-outline-secondary" id="cancel-diet-form">
+                                                <i class="bi bi-x-circle me-1"></i>取消
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="bi bi-save me-1"></i>保存饮食记录
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentDays = 7; // 默认展示最近7天的数据
+        let chartInstances = {}; // 存储图表实例，便于更新
+        
+        // 当文档加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM内容加载完成，初始化分析页面...');
+            
+            // 注册Chart.js数据标签插件
+            if (typeof ChartDataLabels !== 'undefined') {
+                Chart.register(ChartDataLabels);
+                console.log('已注册Chart.js数据标签插件');
+            } else {
+                console.warn('Chart.js数据标签插件未加载，可能导致数据标签无法显示');
+            }
+
+            // 初始化加载7天数据
+            loadAnalysisData(7);
+            
+            // 设置日期范围下拉菜单的事件处理
+            const dateRangeDropdown = document.getElementById('dateRangeDropdown');
+            const dateRangeItems = document.querySelectorAll('.date-range-item');
+            
+            if (dateRangeItems && dateRangeItems.length > 0) {
+                console.log('找到日期范围选择器，设置事件监听...');
+                dateRangeItems.forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const days = parseInt(this.getAttribute('data-days'));
+                        if (dateRangeDropdown) {
+                            dateRangeDropdown.textContent = this.textContent;
+                        }
+                        currentDays = days;
+                        loadAnalysisData(days);
+                    });
+                });
+            } else {
+                console.warn('未找到日期范围选择器');
+            }
+            
+            // 设置快捷添加食物记录表单的日期为今天
+            const recordDateInput = document.getElementById('record-date');
+            if (recordDateInput) {
+                const today = new Date();
+                const formattedDate = today.toISOString().split('T')[0];
+                recordDateInput.value = formattedDate;
+                // 将格式化日期保存为全局变量，方便后续使用
+                window.currentFormattedDate = formattedDate;
+            }
+            
+            // 设置退出登录链接的事件处理
+            const logoutLink = document.getElementById('logout-link');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    localStorage.removeItem('jwt_token');
+                    window.location.href = '/login';
+                });
+            }
+            
+            // 设置快速添加饮食记录表单
+            const quickDietForm = document.getElementById('quick-diet-form');
+            if (quickDietForm) {
+                quickDietForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const token = localStorage.getItem('jwt_token');
+                    if (!token) {
+                        alert('请先登录');
+                        return;
+                    }
+                    
+                    // 获取表单数据
+                    const formData = {
+                        record_date: document.getElementById('record-date').value,
+                        meal_type: document.getElementById('meal-type').value,
+                        food_name: document.getElementById('food-name').value,
+                        amount: parseFloat(document.getElementById('food-amount').value),
+                        calories_burned: parseFloat(document.getElementById('calories').value || 0),
+                        // 收集所有营养素信息
+                        protein: parseFloat(document.getElementById('protein').value || 0),
+                        fat: parseFloat(document.getElementById('fat').value || 0),
+                        carbs: parseFloat(document.getElementById('carbs').value || 0),
+                        fiber: parseFloat(document.getElementById('fiber').value || 0),
+                        sodium: parseFloat(document.getElementById('sodium').value || 0),
+                        sugar: parseFloat(document.getElementById('sugar').value || 0),
+                        notes: document.getElementById('notes').value || ''
+                    };
+                    
+                    // 验证必填字段
+                    if (!formData.food_name || !formData.amount) {
+                        alert('请填写食物名称和数量');
+                        return;
+                    }
+                    
+                    // 记录所有营养素数据用于调试
+                    console.log('营养素数据:', {
+                        蛋白质: formData.protein + 'g',
+                        脂肪: formData.fat + 'g',
+                        碳水: formData.carbs + 'g',
+                        纤维素: formData.fiber + 'g',
+                        钠: formData.sodium + 'mg',
+                        糖分: formData.sugar + 'g'
+                    });
+                    
+                    // 设置记录类型
+                    formData.record_type = 'diet';
+                    
+                    console.log('提交的饮食记录数据:', formData);
+                    
+                    // 发送请求
+                    fetch('/api/diet/records', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(formData)
+                    })
+                    .then(response => {
+                        console.log('饮食记录添加响应状态:', response.status);
+                        console.log('完整响应:', response);
+                        if (!response.ok) {
+                            if (response.status === 401 || response.status === 422) {
+                                throw new Error('认证失败，请重新登录');
+                            }
+                            return response.json().then(errData => {
+                                console.error('错误响应数据:', errData);
+                                throw new Error(errData.message || `服务器错误: ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('饮食记录添加响应:', data);
+                        if (data.success) {
+                            // 记录添加后立即更新页面上的成功信息，以便用户知道添加成功了
+                            const successAlert = document.createElement('div');
+                            successAlert.className = 'alert alert-success alert-dismissible fade show';
+                            successAlert.role = 'alert';
+                            successAlert.innerHTML = `
+                                <strong>添加成功!</strong> 饮食记录已保存：
+                                <ul class="mb-0">
+                                    <li>食物：${formData.food_name}</li>
+                                    <li>数量：${formData.amount}克</li>
+                                    <li>热量：${formData.calories_burned}卡路里</li>
+                                    <li>蛋白质：${formData.protein}克</li>
+                                    <li>脂肪：${formData.fat}克</li>
+                                    <li>碳水：${formData.carbs}克</li>
+                                    <li>纤维素：${formData.fiber}克</li>
+                                    <li>糖分：${formData.sugar}克</li>
+                                    <li>钠：${formData.sodium}毫克</li>
+                                </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            `;
+                            
+                            // 寻找要插入提示的位置（表单之前）
+                            const form = document.getElementById('quick-diet-form');
+                            if (form && form.parentNode) {
+                                form.parentNode.insertBefore(successAlert, form);
+                                
+                                // 5秒后自动关闭提示
+                                setTimeout(() => {
+                                    if (successAlert.parentNode) {
+                                        successAlert.parentNode.removeChild(successAlert);
+                                    }
+                                }, 5000);
+                            } else {
+                                // 如果无法插入，则使用简单的alert
+                            alert('饮食记录添加成功！');
+                            }
+                            
+                            // 记录添加的内容，便于调试
+                            console.log('添加的记录详情:', {
+                                日期: formData.record_date,
+                                餐次: formData.meal_type,
+                                食物: formData.food_name,
+                                数量: formData.amount + 'g',
+                                热量: formData.calories_burned + 'kcal',
+                                蛋白质: formData.protein + 'g',
+                                脂肪: formData.fat + 'g',
+                                碳水: formData.carbs + 'g',
+                                纤维素: formData.fiber + 'g',
+                                糖分: formData.sugar + 'g',
+                                钠: formData.sodium + 'mg'
+                            });
+                            
+                            // 重置表单
+                            if (quickDietForm) quickDietForm.reset();
+                            // 重新设置默认日期为今天
+                            if (recordDateInput) recordDateInput.value = window.currentFormattedDate || new Date().toISOString().split('T')[0];
+                            
+                            // 直接更新当前显示的数据，添加新行
+                            addNewDietRecordRow(formData);
+
+                            // 多次刷新分析数据，确保后端数据处理完成后能获取到最新数据
+                            console.log('添加成功，开始多次刷新分析数据...');
+                            
+                            // 第一次刷新：1秒后
+                            setTimeout(() => {
+                                console.log('第一次刷新分析数据');
+                            refreshAnalysisData();
+                            }, 1000);
+                            
+                            // 第二次刷新：3秒后
+                            setTimeout(() => {
+                                console.log('第二次刷新分析数据');
+                                refreshAnalysisData();
+                                
+                                // 滚动到营养数据表格位置
+                                const dailyNutritionTable = document.querySelector('.card-header.bg-info');
+                                if (dailyNutritionTable) {
+                                    dailyNutritionTable.scrollIntoView({behavior: 'smooth'});
+                                }
+                            }, 3000);
+                            
+                            // 第三次刷新：5秒后
+                            setTimeout(() => {
+                                console.log('第三次刷新分析数据');
+                                refreshAnalysisData();
+                            }, 5000);
+                        } else {
+                            console.error('添加失败:', data.message);
+                            alert(`添加失败: ${data.message}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('添加饮食记录出错:', error);
+                        
+                        if (error.message.includes('认证失败')) {
+                            localStorage.removeItem('jwt_token');
+                            alert('登录状态已失效，请重新登录');
+                            window.location.href = '/login';
+                        } else {
+                            alert(`添加饮食记录时发生错误: ${error.message}`);
+                        }
+                    });
+                });
+                
+                // 取消按钮
+                const cancelButton = document.getElementById('cancel-diet-form');
+                if (cancelButton) {
+                    cancelButton.addEventListener('click', function() {
+                        if (quickDietForm) quickDietForm.reset();
+                        // 重新设置默认日期为今天
+                        if (recordDateInput) recordDateInput.value = window.currentFormattedDate || new Date().toISOString().split('T')[0];
+                    });
+                }
+            }
+            
+            // 初始化变量
+            if (typeof currentDays === 'undefined') {
+                window.currentDays = 7; // 默认展示最近7天的数据
+            }
+            
+            // 验证JWT令牌
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                console.error('未找到JWT令牌，请先登录');
+                alert('请先登录系统');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 测试令牌是否有效
+            fetch('/api/auth/verify', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('令牌验证失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || '令牌验证失败');
+                }
+                console.log('JWT令牌验证成功');
+                // 令牌有效，加载分析数据
+                loadAnalysisData(7);
+            })
+            .catch(error => {
+                console.error('验证令牌出错:', error);
+                localStorage.removeItem('jwt_token'); // 清除无效令牌
+                alert('您的登录已过期，请重新登录后再试');
+                window.location.href = '/login';
+            });
+        });
+        
+        // 加载分析数据
+        function loadAnalysisData(days) {
+            console.log('加载分析数据, 天数:', days);
+            
+            // 显示加载状态
+            const nutritionLoading = document.getElementById('nutrition-loading');
+            const nutritionAnalysis = document.getElementById('nutrition-analysis');
+            const exerciseLoading = document.getElementById('exercise-loading');
+            const exerciseRecommendations = document.getElementById('exercise-recommendations');
+            
+            // 安全地操作DOM元素
+            if (nutritionLoading) nutritionLoading.classList.remove('d-none');
+            if (nutritionAnalysis) nutritionAnalysis.classList.add('d-none');
+            if (exerciseLoading) exerciseLoading.classList.remove('d-none');
+            if (exerciseRecommendations) exerciseRecommendations.classList.add('d-none');
+            
+            // 在切换日期范围时销毁现有图表实例
+            if (window.nutritionChartInstance) {
+                try {
+                    window.nutritionChartInstance.destroy();
+                    window.nutritionChartInstance = null;
+                } catch (e) {
+                    console.error('销毁旧图表实例失败:', e);
+                }
+            }
+            
+            // 计算日期范围
+            const endDate = new Date().toISOString().split('T')[0];
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - (days - 1));
+            const formattedStartDate = startDate.toISOString().split('T')[0];
+            
+            console.log('分析日期范围:', formattedStartDate, '至', endDate);
+            
+            // 获取最新的令牌
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                console.error('令牌不存在，无法加载数据');
+                alert('登录状态已失效，请重新登录');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 获取营养分析数据
+            fetch(`/api/analysis/nutrition?start_date=${formattedStartDate}&end_date=${endDate}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                },
+                cache: 'no-store'
+            })
+            .then(response => {
+                console.log('营养分析API响应状态:', response.status);
+                // 不检查response.ok，因为即使是400状态也会返回JSON
+                return response.json();
+            })
+            .then(data => {
+                console.log('营养分析API响应:', data);
+                
+                // 即使API返回错误也显示空表格
+                const dailyTable = document.getElementById('daily-nutrition-table');
+                if (dailyTable) {
+                    dailyTable.innerHTML = '<tr><td colspan="8" class="text-center">加载数据中...</td></tr>';
+                }
+                
+                if (data.success) {
+                    // 正常渲染数据
+                    renderNutritionAnalysis(data);
+                } else {
+                    console.error('营养分析API错误:', data.message);
+                    // 显示错误信息但不弹出alert
+                    const nutritionAnalysisDetails = document.getElementById('nutrition-analysis-details');
+                    if (nutritionAnalysisDetails) {
+                        nutritionAnalysisDetails.innerHTML = `<div class="alert alert-warning">无法获取营养分析: ${data.message}</div>`;
+                    }
+                    if (dailyTable) {
+                        dailyTable.innerHTML = '<tr><td colspan="8" class="text-center">暂无营养数据，请先添加饮食记录</td></tr>';
+                    }
+                }
+                
+                // 无论成功或失败，都隐藏加载状态显示内容区
+                if (nutritionLoading) nutritionLoading.classList.add('d-none');
+                if (nutritionAnalysis) nutritionAnalysis.classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('营养分析API错误:', error);
+                
+                // 安全地操作DOM元素
+                if (nutritionLoading) nutritionLoading.classList.add('d-none');
+                if (nutritionAnalysis) nutritionAnalysis.classList.remove('d-none');
+                
+                // 友好地显示错误信息
+                const nutritionAnalysisDetails = document.getElementById('nutrition-analysis-details');
+                if (nutritionAnalysisDetails) {
+                    nutritionAnalysisDetails.innerHTML = `<div class="alert alert-danger">加载营养分析失败: ${error.message}</div>`;
+                }
+                
+                const dailyTable = document.getElementById('daily-nutrition-table');
+                if (dailyTable) {
+                    dailyTable.innerHTML = '<tr><td colspan="8" class="text-center">网络错误，无法加载数据</td></tr>';
+                }
+            });
+            
+            // 获取运动建议数据
+            fetch(`/api/analysis/exercise-recommendations?days=${days}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                console.log('运动建议API响应状态:', response.status);
+                // 不检查response.ok，因为即使是400状态也会返回JSON
+                return response.json();
+            })
+            .then(data => {
+                console.log('运动建议API响应:', data);
+                
+                const exercisePlan = document.getElementById('exercise-plan');
+                if (exercisePlan) {
+                    exercisePlan.innerHTML = '<div class="text-center">加载数据中...</div>';
+                }
+                
+                if (data.success) {
+                    // 正常渲染数据
+                    renderExerciseRecommendations(data);
+                } else {
+                    console.error('获取运动建议失败:', data.message);
+                    // 显示错误信息，但不弹出alert
+                    if (exercisePlan) {
+                        exercisePlan.innerHTML = `<div class="alert alert-warning">无法获取运动建议: ${data.message}</div>
+                            <p class="mt-3">您可以先添加一些运动记录，以便我们为您提供个性化的运动建议。</p>`;
+                    }
+                }
+                
+                // 无论成功或失败，都隐藏加载状态显示内容区
+                if (exerciseLoading) exerciseLoading.classList.add('d-none');
+                if (exerciseRecommendations) exerciseRecommendations.classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('运动建议API错误:', error);
+                
+                // 安全地操作DOM元素
+                if (exerciseLoading) exerciseLoading.classList.add('d-none');
+                if (exerciseRecommendations) exerciseRecommendations.classList.remove('d-none');
+                
+                // 友好地显示错误信息
+                const exercisePlan = document.getElementById('exercise-plan');
+                if (exercisePlan) {
+                    exercisePlan.innerHTML = `<div class="alert alert-danger">加载运动建议失败: ${error.message}</div>
+                        <p class="mt-3">请稍后再试，或者添加一些运动记录后再查看建议。</p>`;
+                }
+            });
+        }
+        
+        // 渲染营养分析数据
+        function renderNutritionAnalysis(data) {
+            try {
+                console.log('[renderNutritionAnalysis] 开始渲染营养分析数据:', data);
+                
+                // 兼容不同的数据结构
+                let nutritionData;
+                if (data.data) {
+                    nutritionData = data.data;
+                } else {
+                    // 处理API直接返回数据的情况
+                    nutritionData = data;
+                    // 如果缺少必要字段，添加空对象
+                    if (!nutritionData.daily_nutrition) nutritionData.daily_nutrition = [];
+                    if (!nutritionData.average) nutritionData.average = {};
+                    if (!nutritionData.recommended) nutritionData.recommended = {};
+                    if (!nutritionData.analysis) nutritionData.analysis = [];
+                }
+                
+                // 详细打印每日营养数据
+                if (nutritionData.daily_nutrition) {
+                    console.log('[renderNutritionAnalysis] 每日营养数据条数:', nutritionData.daily_nutrition.length);
+                    if (nutritionData.daily_nutrition.length > 0) {
+                        console.log('[renderNutritionAnalysis] 首条日期数据:', nutritionData.daily_nutrition[0]);
+                    }
+                } else {
+                    console.warn('[renderNutritionAnalysis] 未找到daily_nutrition数据');
+                    nutritionData.daily_nutrition = []; // 确保不是undefined
+                }
+                
+                // 渲染每日营养表格
+                const dailyTable = document.getElementById('daily-nutrition-table');
+                if (dailyTable) {
+                    console.log('[renderNutritionAnalysis] 清空表格内容');
+                    dailyTable.innerHTML = '';
+                    
+                    // 判断是否有数据
+                    if (!nutritionData.daily_nutrition || nutritionData.daily_nutrition.length === 0) {
+                        console.warn('[renderNutritionAnalysis] 无每日营养数据，显示提示信息');
+                        dailyTable.innerHTML = '<tr><td colspan="8" class="text-center">暂无每日摄入数据</td></tr>';
+                        
+                        // 如果没有数据，也更新分析部分显示
+                        const nutritionAnalysisDetails = document.getElementById('nutrition-analysis-details');
+                        if (nutritionAnalysisDetails) {
+                            nutritionAnalysisDetails.innerHTML = '<div class="alert alert-info">暂无饮食数据用于分析。请添加您的饮食记录。</div>';
+                        }
+                        return;
+                    }
+                    
+                    console.log('[renderNutritionAnalysis] 开始逐条渲染每日数据');
+                    
+                    let hasAnyData = false;
+                    let processedDates = [];
+                    
+                    // 先按日期排序，确保最新日期在前面
+                    let sortedData = [...nutritionData.daily_nutrition].sort((a, b) => {
+                        if (!a || !b || !a.date || !b.date) return 0;
+                        return new Date(b.date) - new Date(a.date); // 降序排列
+                    });
+                    
+                    // 循环渲染每日数据
+                    sortedData.forEach((day, index) => {
+                        if (!day || !day.date) {
+                            console.warn(`[renderNutritionAnalysis] 跳过无效的日期数据 (索引: ${index})`);
+                            return; // 跳过无效数据
+                        }
+                        
+                        // 确保不重复显示同一天的数据
+                        if (processedDates.includes(day.date)) {
+                            console.log(`[renderNutritionAnalysis] 跳过重复的日期: ${day.date}`);
+                            return;
+                        }
+                        processedDates.push(day.date);
+                        
+                        console.log(`[renderNutritionAnalysis] 处理日期数据: ${day.date}`);
+                        console.log(`  热量: ${day.calories}, 蛋白质: ${day.protein}`);
+                        
+                        // 确保所有值都有默认值0，并转换为数字类型
+                        const calories = parseFloat(day.calories || 0);
+                        const protein = parseFloat(day.protein || 0);
+                        const fat = parseFloat(day.fat || 0);
+                        const carbs = parseFloat(day.carbohydrate || 0);
+                        const fiber = parseFloat(day.fiber || 0);
+                        const sugar = parseFloat(day.sugar || 0);
+                        const sodium = parseFloat(day.sodium || 0);
+                        
+                        try {
+                            const formattedDate = formatDate(day.date);
+                            console.log(`[renderNutritionAnalysis] 格式化后的日期: ${formattedDate}, 糖分: ${sugar}g`);
+                            
+                            // 判断是否有数据
+                            const hasData = calories > 0 || protein > 0 || fat > 0 || carbs > 0 || fiber > 0 || sugar > 0 || sodium > 0;
+                        
+                        const rowHtml = `
+                                <tr class="${hasData ? 'table-primary' : ''} ${day.date === new Date().toISOString().split('T')[0] ? 'fw-bold' : ''}">
+                                <td>${formattedDate}</td>
+                                <td>${Math.round(calories)}</td>
+                                    <td>${protein.toFixed(1)}</td>
+                                    <td>${fat.toFixed(1)}</td>
+                                    <td>${carbs.toFixed(1)}</td>
+                                    <td>${fiber.toFixed(1)}</td>
+                                    <td>${sugar.toFixed(1)}</td>
+                                <td>${Math.round(sodium)}</td>
+                            </tr>
+                        `;
+                        dailyTable.innerHTML += rowHtml;
+                        
+                        // 检查是否至少有一个非零数据
+                            if (hasData) {
+                            hasAnyData = true;
+                                console.log(`[renderNutritionAnalysis] 日期 ${day.date} 有非零数据`);
+                            }
+                        } catch (e) {
+                            console.error(`[renderNutritionAnalysis] 处理日期 ${day.date} 时出错:`, e);
+                        }
+                    });
+                    
+                    console.log('[renderNutritionAnalysis] 是否有实际数据:', hasAnyData);
+                    
+                    // 如果所有数据都是零
+                    if (!hasAnyData) {
+                        console.warn('[renderNutritionAnalysis] 所有数据都是零，显示无记录提示');
+                        dailyTable.innerHTML = '<tr><td colspan="8" class="text-center">所选时间范围内没有营养摄入记录</td></tr>';
+                    }
+                } else {
+                    console.error('[renderNutritionAnalysis] 未找到表格元素!');
+                }
+                
+                // 检查是否有图表和分析数据
+                const nutritionAnalysisDetails = document.getElementById('nutrition-analysis-details');
+                
+                // 确保数据可用
+                if (!nutritionData.average || !nutritionData.recommended) {
+                    console.warn('[renderNutritionAnalysis] 缺少平均值或推荐值数据，无法渲染分析详情');
+                    if (nutritionAnalysisDetails) {
+                        nutritionAnalysisDetails.innerHTML = '<div class="alert alert-warning">暂无足够的饮食数据用于分析。请先记录您的饮食信息。</div>';
+                    }
+                    return;
+                }
+                
+                // 尝试渲染营养分析图表
+                const chartElement = document.getElementById('nutrition-chart');
+                if (chartElement) {
+                    console.log('[renderNutritionAnalysis] 渲染营养分析图表');
+                    const ctx = chartElement.getContext('2d');
+                    
+                    // 销毁已存在的图表实例，避免"Canvas is already in use"错误
+                    if (window.nutritionChartInstance) {
+                        try {
+                            window.nutritionChartInstance.destroy();
+                        } catch (error) {
+                            console.error('[renderNutritionAnalysis] 销毁图表失败:', error);
+                        }
+                    }
+                    
+                    // 确保数据对象有必要的字段
+                    const average = nutritionData.average || {};
+                    const recommended = nutritionData.recommended || {};
+                    
+                    // 安全地获取数据值，确保有默认值
+                    const avgCalories = average.calories || 0;
+                    const avgProtein = average.protein || 0;
+                    const avgFat = average.fat || 0;
+                    const avgCarbs = average.carbohydrate || 0;
+                    const avgFiber = average.fiber || 0;
+                    const avgSugar = average.sugar || 0;
+                    
+                    // 输出实际的营养素值以便调试
+                    console.log('平均营养值 - 纤维素:', avgFiber, 'g, 糖分:', avgSugar, 'g');
+                    
+                    // 增强低值数据的显示
+                    // 使用最小可见高度，确保小数值也能在图表上看到
+                    const minVisibleValue = 2.0;  // 增加最小可见高度
+                    const enhancedAvgFiber = avgFiber > 0 ? Math.max(avgFiber, minVisibleValue) : 0;
+                    const enhancedAvgSugar = avgSugar > 0 ? Math.max(avgSugar, minVisibleValue) : 0;
+                    
+                    // 确保糖分值总是略高于其他低值，以便在图表上更明显
+                    const sugarDisplayValue = avgSugar > 0 ? Math.max(avgSugar, minVisibleValue * 1.2) : 0;
+                    
+                    console.log('增强后的值 - 纤维素:', enhancedAvgFiber, 'g, 糖分:', sugarDisplayValue, 'g (原值:', avgSugar, 'g)');
+                    
+                    const recCalories = recommended.calories || 2000;
+                    const recProtein = recommended.protein || 60;
+                    const recFat = recommended.fat || 65;
+                    const recCarbs = recommended.carbohydrate || 275;
+                    const recFiber = recommended.fiber || 25;
+                    const recSugar = recommended.sugar || 25;
+                    
+                    window.nutritionChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['热量(kcal÷10)', '蛋白质(g)', '脂肪(g)', '碳水(g)', '纤维素(g)', '糖(g)'],
+                            datasets: [
+                                {
+                                    label: '每日平均摄入',
+                                    data: [
+                                        avgCalories / 10, // 缩小热量数值以便显示
+                                        avgProtein,
+                                        avgFat,
+                                        avgCarbs,
+                                        enhancedAvgFiber, // 使用增强的值
+                                        sugarDisplayValue  // 使用进一步增强的糖分值
+                                    ],
+                                    backgroundColor: [
+                                        'rgba(54, 162, 235, 0.5)',
+                                        'rgba(54, 162, 235, 0.5)',
+                                        'rgba(54, 162, 235, 0.5)',
+                                        'rgba(54, 162, 235, 0.5)',
+                                        'rgba(54, 162, 235, 0.5)',
+                                        'rgba(54, 162, 235, 0.5)'
+                                    ],
+                                    borderColor: [
+                                        'rgba(54, 162, 235, 1)',
+                                        'rgba(54, 162, 235, 1)',
+                                        'rgba(54, 162, 235, 1)',
+                                        'rgba(54, 162, 235, 1)',
+                                        'rgba(54, 162, 235, 1)',
+                                        'rgba(54, 162, 235, 1)' 
+                                    ],
+                                    borderWidth: 1,
+                                    // 设置数据点的独立样式
+                                    datalabels: {
+                                        display: true,
+                                        color: '#222',
+                                        backgroundColor: 'rgba(255,255,255,0.8)',
+                                        borderRadius: 4,
+                                        borderWidth: 1,
+                                        borderColor: '#ccc',
+                                        padding: 4,
+                                        font: {
+                                            weight: 'normal',
+                                            size: 11
+                                        },
+                                        anchor: 'end',
+                                        align: 'end',
+                                        offset: 4,
+                                        formatter: function(value, context) {
+                                            if (context.dataIndex === 0) {
+                                                return value.toFixed(2) + 'kcal';
+                                            }
+                                            return value.toFixed(2) + 'g';
+                                        }
+                                    }
+                                },
+                                {
+                                    label: '推荐摄入量',
+                                    data: [
+                                        recCalories / 10,
+                                        recProtein,
+                                        recFat,
+                                        recCarbs,
+                                        recFiber,
+                                        recSugar
+                                    ],
+                                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                    borderColor: 'rgba(255, 99, 132, 1)',
+                                    borderWidth: 1,
+                                    type: 'line',
+                                    // 禁用此数据集的数据标签
+                                    datalabels: {
+                                        display: false
+                                    }
+                                }
+                            ]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    // 调整Y轴配置，使小值更容易看到
+                                    min: 0,
+                                    suggestedMax: 30, // 设置建议最大值，使小值更明显
+                                    ticks: {
+                                        // 确保Y轴能显示更小的值
+                                        precision: 1,
+                                        // 自定义Y轴刻度
+                                        callback: function(value) {
+                                            return value.toFixed(1) + 'g';
+                                        }
+                                    }
+                                }
+                            },
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            // 添加动画设置
+                            animation: {
+                                duration: 1500
+                            },
+                            // 全局插件配置
+                            plugins: {
+                                tooltip: {
+                                    useHTML: true,  // 启用HTML内容显示
+                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                    titleColor: '#333',
+                                    bodyColor: '#333',
+                                    borderColor: '#ccc',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    padding: 10,
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            
+                                            // 获取实际值（而非显示值）
+                                            let actualValue;
+                                            switch(context.dataIndex) {
+                                                case 0: // 热量
+                                                    actualValue = avgCalories;
+                                                    label += actualValue.toFixed(0) + ' kcal';
+                                                    break;
+                                                case 4: // 纤维素
+                                                    actualValue = avgFiber;
+                                                    label += actualValue.toFixed(2) + ' g';
+                                                    break;
+                                                case 5: // 糖分
+                                                    actualValue = avgSugar;
+                                                    label += actualValue.toFixed(2) + ' g';
+                                                    break;
+                                                default: // 其他营养素
+                                                    actualValue = context.parsed.y;
+                                                    label += actualValue.toFixed(1) + ' g';
+                                            }
+                                            
+                                            return label;
+                                        }
+                                    }
+                                },
+                                // 全局数据标签配置
+                                datalabels: {
+                                    display: false // 默认不显示，由数据集自己控制
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    console.error('[renderNutritionAnalysis] 未找到图表元素!');
+                }
+                
+                // 渲染详细分析
+                if (nutritionAnalysisDetails) {
+                    nutritionAnalysisDetails.innerHTML = '';
+                    
+                    if (!nutritionData.analysis || nutritionData.analysis.length === 0) {
+                        nutritionAnalysisDetails.innerHTML = '<div class="alert alert-info">暂无详细分析结果，请添加更多饮食记录。</div>';
+                        return;
+                    }
+                    
+                    nutritionData.analysis.forEach(item => {
+                        if (!item) return; // 跳过无效数据
+                        
+                        let statusClass = '';
+                        if (item.status === '正常' || item.status === '适量') {
+                            statusClass = 'text-success';
+                        } else if (item.status === '过高' || item.status === '过多') {
+                            statusClass = 'text-danger';
+                        } else {
+                            statusClass = 'text-warning';
+                        }
+                        
+                        const nutrientNames = {
+                            'calories': '热量',
+                            'protein': '蛋白质',
+                            'fat': '脂肪',
+                            'carbohydrate': '碳水化合物',
+                            'fiber': '纤维素',
+                            'sugar': '糖',
+                            'sodium': '钠'
+                        };
+                        
+                        const name = nutrientNames[item.nutrient] || item.nutrient || '未知';
+                        const status = item.status || '未知';
+                        const message = item.message || '无分析信息';
+                        
+                        // 为糖分分析添加特殊样式
+                        const isSugar = (item.nutrient === 'sugar');
+                        
+                        nutritionAnalysisDetails.innerHTML += `
+                            <div class="recommendation-item mb-3">
+                                <h6>
+                                    ${name} 
+                                    <span class="${statusClass}">(${status})</span>
+                                </h6>
+                                <p>${message}</p>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('渲染营养分析出错:', error, error.stack);
+                const nutritionAnalysisDetails = document.getElementById('nutrition-analysis-details');
+                if (nutritionAnalysisDetails) {
+                    nutritionAnalysisDetails.innerHTML = `<div class="alert alert-danger">渲染分析数据失败: ${error.message}</div>`;
+                }
+            }
+        }
+        
+        // 渲染运动建议数据
+        function renderExerciseRecommendations(data) {
+            const exerciseData = data.data;
+            // 渲染推荐运动计划
+            const exercisePlan = document.getElementById('exercise-plan');
+            exercisePlan.innerHTML = '';
+            
+            if (exerciseData.recommendations && exerciseData.recommendations.length > 0) {
+                exerciseData.recommendations.forEach(rec => {
+                    let recommendationHtml = `
+                        <div class="recommendation-item mb-3">
+                            <h6>${rec.type === 'variety' ? rec.category : rec.type === 'duration' ? '运动时长' : '热量平衡'}</h6>
+                            <p class="alert ${rec.severity === 'high' ? 'alert-danger' : rec.severity === 'medium' ? 'alert-warning' : 'alert-info'}">${rec.message}</p>`;
+                    
+                    if (rec.suggestions && rec.suggestions.length > 0) {
+                        recommendationHtml += `<div class="suggested-exercises"><strong>建议运动:</strong> `;
+                        rec.suggestions.forEach((suggestion, index) => {
+                            recommendationHtml += `${suggestion.name}${index < rec.suggestions.length - 1 ? ', ' : ''}`;
+                        });
+                        recommendationHtml += `</div>`;
+                    }
+                    
+                    recommendationHtml += `</div>`;
+                    exercisePlan.innerHTML += recommendationHtml;
+                });
+                
+                // 添加周计划标题
+                if (exerciseData.weekly_plan && exerciseData.weekly_plan.length > 0) {
+                    exercisePlan.innerHTML += '<h5 class="mt-4">每周运动计划</h5>';
+                    
+                    // 添加周计划表格
+                    let weeklyPlanHtml = `
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>日期</th>
+                                        <th>建议活动</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    
+                    exerciseData.weekly_plan.forEach(day => {
+                        weeklyPlanHtml += `
+                            <tr>
+                                <td><strong>${day.day}</strong></td>
+                                <td>`;
+                        
+                        if (day.activities && day.activities.length > 0) {
+                            day.activities.forEach(activity => {
+                                weeklyPlanHtml += `
+                                    <div>
+                                        <strong>${activity.category}</strong>: ${activity.duration}分钟
+                                        ${activity.suggestions && activity.suggestions.length > 0 
+                                          ? `<small>(建议: ${activity.suggestions.map(s => s.name).join(', ')})</small>` 
+                                          : ''}
+                                    </div>`;
+                            });
+                        } else {
+                            weeklyPlanHtml += `<span class="text-muted">休息日</span>`;
+                        }
+                        
+                        weeklyPlanHtml += `</td></tr>`;
+                    });
+                    
+                    weeklyPlanHtml += `</tbody></table></div>`;
+                    exercisePlan.innerHTML += weeklyPlanHtml;
+                }
+            } else {
+                exercisePlan.innerHTML = '<p class="text-muted">暂无可用的运动建议，请确保您已记录足够的健康和饮食数据。</p>';
+            }
+            
+            // 显示当前运动状态
+            if (exerciseData.current_status) {
+                const status = exerciseData.current_status;
+                const statsSummary = document.getElementById('exercise-stats');
+                if (statsSummary) {
+                    statsSummary.innerHTML = `
+                        <div class="card mb-3">
+                            <div class="card-header">当前运动状态</div>
+                            <div class="card-body">
+                                <p><strong>每日平均运动时长:</strong> ${status.average_daily_duration} 分钟</p>
+                                <p><strong>运动类型:</strong> 
+                                    ${status.has_cardio ? '<span class="badge bg-success">有氧运动</span> ' : ''} 
+                                    ${status.has_strength ? '<span class="badge bg-primary">力量训练</span> ' : ''} 
+                                    ${status.has_flexibility ? '<span class="badge bg-info">柔韧性训练</span>' : ''}
+                                    ${!status.has_cardio && !status.has_strength && !status.has_flexibility ? '无' : ''}
+                                </p>
+                                ${status.calorie_surplus !== null ? 
+                                    `<p><strong>热量平衡:</strong> 
+                                        <span class="${status.calorie_surplus > 0 ? 'text-danger' : status.calorie_surplus < 0 ? 'text-warning' : 'text-success'}">
+                                            ${status.calorie_surplus > 0 ? '热量盈余' : status.calorie_surplus < 0 ? '热量赤字' : '热量平衡'} 
+                                            ${Math.abs(status.calorie_surplus).toFixed(0)} 卡路里/天
+                                        </span>
+                                    </p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            try {
+                console.log('[formatDate] 输入日期字符串:', dateString);
+                if (!dateString) return '未知日期';
+                
+                // 尝试多种日期格式
+                let date;
+                
+                // 尝试处理非标准格式
+                if (typeof dateString === 'object' && dateString !== null) {
+                    console.log('[formatDate] 日期是对象，尝试使用日期对象属性');
+                    if (dateString.getMonth) {
+                        // 已经是Date对象
+                        date = dateString;
+                    } else if (dateString.date) {
+                        // 包含date属性的对象
+                        dateString = dateString.date;
+                    } else {
+                        console.warn('[formatDate] 无法处理的日期对象:', dateString);
+                        return '日期格式错误';
+                    }
+                }
+                
+                if (!date) {
+                    if (String(dateString).includes('T')) {
+                        // ISO 格式 (2023-05-15T00:00:00)
+                        console.log('[formatDate] 检测到ISO格式日期');
+                        date = new Date(dateString);
+                    } else if (String(dateString).includes('-')) {
+                        // YYYY-MM-DD 格式
+                        console.log('[formatDate] 检测到连字符分隔日期');
+                        const parts = String(dateString).split('-');
+                        if (parts.length === 3) {
+                            date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                        } else {
+                            date = new Date(dateString);
+                        }
+                    } else if (String(dateString).includes('/')) {
+                        // MM/DD/YYYY 格式
+                        console.log('[formatDate] 检测到斜杠分隔日期');
+                        const parts = String(dateString).split('/');
+                        if (parts.length === 3) {
+                            date = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+                        } else {
+                            date = new Date(dateString);
+                        }
+                    } else {
+                        // 尝试直接解析
+                        console.log('[formatDate] 尝试直接解析日期');
+                        date = new Date(dateString);
+                    }
+                }
+                
+                console.log('[formatDate] 解析后的日期对象:', date);
+                
+                if (isNaN(date.getTime())) {
+                    console.error('[formatDate] 日期格式化失败:', dateString);
+                    return String(dateString) || '未知日期'; // 如果无法解析，直接返回原字符串
+                }
+                
+                const result = `${date.getMonth() + 1}月${date.getDate()}日`;
+                console.log('[formatDate] 格式化结果:', result);
+                return result;
+            } catch (error) {
+                console.error('[formatDate] 日期格式化错误:', error);
+                return String(dateString) || '未知日期';
+            }
+        }
+
+        // 立即向表格添加新记录行
+        function addNewDietRecordRow(formData) {
+            try {
+                console.log('添加新饮食记录到表格:', formData);
+                const dailyTable = document.getElementById('daily-nutrition-table');
+                if (!dailyTable) return;
+                
+                // 获取当前日期和格式化日期
+                const recordDate = formData.record_date;
+                const formattedDate = formatDate(recordDate);
+                
+                // 获取记录中的营养素数据
+                const calories = formData.calories_burned || 0;
+                const amount = formData.amount || 0;
+                
+                // 使用表单提交的营养素数据(如果有)，否则进行估算
+                let proteinValue = formData.protein || 0;
+                let fatValue = formData.fat || 0;
+                let carbsValue = formData.carbs || 0;
+                let fiberValue = formData.fiber || 0;
+                let sodiumValue = formData.sodium || 0;
+                let sugarValue = formData.sugar || 0;
+                
+                const foodName = formData.food_name;
+                
+                // 如果没有填写营养素数据，则进行估算
+                if (proteinValue === 0 && fatValue === 0 && carbsValue === 0 && 
+                    fiberValue === 0 && sodiumValue === 0) {
+                    
+                    console.log('未提供完整营养素数据，开始估算...');
+                    
+                    // 根据食物名称进行不同的营养素估算
+                    if (foodName.includes("鸡蛋") || foodName.includes("蛋")) {
+                        proteinValue = amount * 0.13;  // 13% 蛋白质
+                        fatValue = amount * 0.10;      // 10% 脂肪
+                        carbsValue = amount * 0.01;    // 1% 碳水
+                        fiberValue = 0;                // 几乎没有纤维
+                        sodiumValue = amount * 1.4;    // 140mg/100g 钠
+                        // 如果没有提供糖分，则估算
+                        if (!formData.sugar) sugarValue = amount * 0.005; // 0.5% 糖分
+                    } else if (foodName.includes("肉") || foodName.includes("牛肉") || 
+                               foodName.includes("猪肉") || foodName.includes("鸡肉")) {
+                        proteinValue = amount * 0.22;  // 22% 蛋白质
+                        fatValue = amount * 0.10;      // 10% 脂肪
+                        carbsValue = 0;                // 几乎没有碳水
+                        fiberValue = 0;                // 几乎没有纤维
+                        sodiumValue = amount * 0.7;    // 70mg/100g 钠
+                    } else if (foodName.includes("米饭") || foodName.includes("面") || 
+                              foodName.includes("米") || foodName.includes("饭")) {
+                        proteinValue = amount * 0.07;  // 7% 蛋白质
+                        fatValue = amount * 0.01;      // 1% 脂肪
+                        carbsValue = amount * 0.28;    // 28% 碳水
+                        fiberValue = amount * 0.01;    // 1% 纤维
+                        sodiumValue = amount * 0.02;   // 2mg/100g 钠
+                        // 如果没有提供糖分，则估算
+                        if (!formData.sugar) sugarValue = amount * 0.005; // 0.5% 糖分
+                    } else if (foodName.includes("菜") || foodName.includes("青菜") || 
+                              foodName.includes("蔬菜")) {
+                        proteinValue = amount * 0.02;  // 2% 蛋白质
+                        fatValue = 0;                  // 几乎没有脂肪
+                        carbsValue = amount * 0.05;    // 5% 碳水
+                        fiberValue = amount * 0.03;    // 3% 纤维
+                        sodiumValue = amount * 0.1;    // 10mg/100g 钠
+                        // 如果没有提供糖分，则估算
+                        if (!formData.sugar) sugarValue = amount * 0.02; // 2% 糖分
+                    } else if (foodName.includes("果") || foodName.includes("苹果") || 
+                              foodName.includes("香蕉")) {
+                        proteinValue = amount * 0.01;  // 1% 蛋白质
+                        fatValue = 0;                  // 几乎没有脂肪
+                        carbsValue = amount * 0.15;    // 15% 碳水
+                        fiberValue = amount * 0.02;    // 2% 纤维
+                        sodiumValue = amount * 0.01;   // 1mg/100g 钠
+                        // 如果没有提供糖分，则估算
+                        if (!formData.sugar) sugarValue = amount * 0.10; // 10% 糖分(水果含糖较高)
+                    } else if (calories > 0) {
+                        // 如果有热量数据但没有匹配到食物类型，则按比例估算营养素
+                        proteinValue = calories * 0.2 / 4;  // 假设20%热量来自蛋白质
+                        fatValue = calories * 0.3 / 9;      // 假设30%热量来自脂肪
+                        carbsValue = calories * 0.5 / 4;    // 假设50%热量来自碳水
+                        fiberValue = amount * 0.03;         // 假设每100g食物含3g纤维
+                        sodiumValue = amount * 0.05;        // 假设每100g食物含50mg钠
+                        // 如果没有提供糖分，则估算
+                        if (!formData.sugar) sugarValue = calories * 0.1 / 4; // 假设10%热量来自糖分
+                    }
+                    
+                    console.log('营养素估算结果:', {
+                        蛋白质: proteinValue.toFixed(1) + 'g',
+                        脂肪: fatValue.toFixed(1) + 'g',
+                        碳水: carbsValue.toFixed(1) + 'g',
+                        纤维素: fiberValue.toFixed(1) + 'g',
+                        钠: sodiumValue.toFixed(1) + 'mg',
+                        糖分: sugarValue.toFixed(2) + 'g'
+                    });
+                }
+                
+                // 检查是否已存在该日期的行
+                let existingRow = null;
+                const rows = dailyTable.querySelectorAll('tr');
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length > 0 && cells[0].textContent === formattedDate) {
+                        existingRow = row;
+                        break;
+                    }
+                }
+                
+                if (existingRow) {
+                    console.log(`更新日期 ${formattedDate} 的现有行`);
+                    // 获取现有值并添加新值
+                    const cells = existingRow.querySelectorAll('td');
+                    if (cells.length >= 8) {
+                        const currentCals = parseFloat(cells[1].textContent) || 0;
+                        const currentProtein = parseFloat(cells[2].textContent) || 0;
+                        const currentFat = parseFloat(cells[3].textContent) || 0;
+                        const currentCarbs = parseFloat(cells[4].textContent) || 0;
+                        const currentFiber = parseFloat(cells[5].textContent) || 0;
+                        const currentSugar = parseFloat(cells[6].textContent) || 0;
+                        const currentSodium = parseFloat(cells[7].textContent) || 0;
+                        
+                        // 更新单元格内容
+                        cells[1].textContent = Math.round(currentCals + calories);
+                        cells[2].textContent = (currentProtein + proteinValue).toFixed(1);
+                        cells[3].textContent = (currentFat + fatValue).toFixed(1);
+                        cells[4].textContent = (currentCarbs + carbsValue).toFixed(1);
+                        cells[5].textContent = (currentFiber + fiberValue).toFixed(1);
+                        cells[6].textContent = (currentSugar + sugarValue).toFixed(1);
+                        cells[7].textContent = Math.round(currentSodium + sodiumEstimate);
+                        
+                        // 添加高亮类
+                        existingRow.classList.add('table-primary', 'fw-bold');
+                        
+                        // 2秒后移除高亮
+                        setTimeout(() => {
+                            existingRow.classList.remove('fw-bold');
+                        }, 2000);
+                    }
+                } else {
+                    console.log(`为日期 ${formattedDate} 创建新行`);
+                    // 创建新行
+                    const newRow = document.createElement('tr');
+                    newRow.className = 'table-primary fw-bold';
+                    
+                    newRow.innerHTML = `
+                        <td>${formattedDate}</td>
+                        <td>${Math.round(calories)}</td>
+                        <td>${proteinValue.toFixed(1)}</td>
+                        <td>${fatValue.toFixed(1)}</td>
+                        <td>${carbsValue.toFixed(1)}</td>
+                        <td>${fiberValue.toFixed(1)}</td>
+                        <td>${sugarValue.toFixed(1)}</td>
+                        <td>${Math.round(sodiumValue)}</td>
+                    `; 
+                    
+                    // 找到日期应该插入的位置
+                    const today = new Date();
+                    const recordDateTime = new Date(recordDate);
+                    
+                    // 检查是否是当天或未来的日期
+                    if (recordDateTime >= today) {
+                        // 插入到表格最前面
+                        if (dailyTable.firstChild) {
+                            dailyTable.insertBefore(newRow, dailyTable.firstChild);
+                        } else {
+                            dailyTable.appendChild(newRow);
+                        }
+                    } else {
+                        // 尝试插入到正确的时间顺序位置
+                        let inserted = false;
+                        for (let i = 0; i < rows.length; i++) {
+                            const row = rows[i];
+                            const cells = row.querySelectorAll('td');
+                            if (cells.length > 0) {
+                                // 尝试提取日期
+                                try {
+                                    const dateText = cells[0].textContent;
+                                    const dateParts = dateText.split('月');
+                                    if (dateParts.length === 2) {
+                                        const month = parseInt(dateParts[0]);
+                                        const day = parseInt(dateParts[1].replace('日', ''));
+                                        
+                                        const rowDate = new Date(today.getFullYear(), month - 1, day);
+                                        
+                                        if (recordDateTime > rowDate) {
+                                            dailyTable.insertBefore(newRow, row);
+                                            inserted = true;
+                                            break;
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('解析行日期出错:', e);
+                                }
+                            }
+                        }
+                        
+                        // 如果未能插入到合适位置，则添加到表格末尾
+                        if (!inserted) {
+                            dailyTable.appendChild(newRow);
+                        }
+                    }
+                    
+                    // 2秒后移除高亮
+                    setTimeout(() => {
+                        newRow.classList.remove('fw-bold');
+                    }, 2000);
+                }
+                
+                // 移除"暂无数据"提示行
+                const noDataRows = dailyTable.querySelectorAll('tr td[colspan="8"]');
+                if (noDataRows.length > 0) {
+                    for (const row of noDataRows) {
+                        const parentRow = row.parentNode;
+                        if (parentRow && parentRow.parentNode) {
+                            parentRow.parentNode.removeChild(parentRow);
+                        }
+                    }
+                }
+                
+                console.log('成功更新表格数据');
+                
+            } catch (error) {
+                console.error('添加新记录行出错:', error);
+            }
+        }
+
+        // 添加饮食记录后刷新分析数据
+        function refreshAnalysisData() {
+            console.log('刷新分析数据...');
+            
+            // 强制清空表格显示加载状态
+            const dailyTable = document.getElementById('daily-nutrition-table');
+            if (dailyTable) {
+                dailyTable.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> 正在重新加载最新数据...</td></tr>';
+            }
+            
+            // 清空图表和分析详情
+            const nutritionAnalysisDetails = document.getElementById('nutrition-analysis-details');
+            if (nutritionAnalysisDetails) {
+                nutritionAnalysisDetails.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> 更新分析中...</div>';
+            }
+            
+            // 显示加载状态
+            const nutritionLoading = document.getElementById('nutrition-loading');
+            const nutritionAnalysis = document.getElementById('nutrition-analysis');
+            if (nutritionLoading) nutritionLoading.classList.remove('d-none');
+            if (nutritionAnalysis) nutritionAnalysis.classList.add('d-none');
+            
+            // 添加随机查询参数，避免缓存
+            const cacheBreaker = new Date().getTime();
+            
+            // 使用当前选择的天数重新加载数据
+            const days = currentDays || 7;
+            const endDate = new Date().toISOString().split('T')[0];
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - (days - 1));
+            const formattedStartDate = startDate.toISOString().split('T')[0];
+            
+            console.log('强制刷新分析日期范围:', formattedStartDate, '至', endDate);
+            
+            // 获取最新的令牌
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                console.error('令牌不存在，无法刷新数据');
+                return;
+            }
+            
+            // 定义重试功能
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            function fetchDataWithRetry() {
+                // 强制重新获取营养分析数据
+                fetch(`/api/analysis/nutrition?start_date=${formattedStartDate}&end_date=${endDate}&_=${cacheBreaker+retryCount}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    },
+                    // 使用no-store禁止浏览器缓存
+                    cache: 'no-store'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('刷新获取到的营养分析数据:', data);
+                    
+                    // 检查是否有新添加的数据
+                    let hasNewData = false;
+                    if (data.success && data.data && data.data.daily_nutrition) {
+                        // 遍历日期数据
+                        for (const day of data.data.daily_nutrition) {
+                            // 如果有任何一天有非零数据，说明数据已更新
+                            if ((day.calories && parseFloat(day.calories) > 0) || 
+                                (day.protein && parseFloat(day.protein) > 0) || 
+                                (day.fat && parseFloat(day.fat) > 0) || 
+                                (day.carbohydrate && parseFloat(day.carbohydrate) > 0) || 
+                                (day.fiber && parseFloat(day.fiber) > 0) || 
+                                (day.sodium && parseFloat(day.sodium) > 0)) {
+                                hasNewData = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 如果没有新数据且还有重试次数，则重试
+                    if (!hasNewData && retryCount < maxRetries) {
+                        retryCount++;
+                        console.log(`第${retryCount}次重试获取新数据...`);
+                        // 增加延迟，给后端更多处理时间
+                        setTimeout(fetchDataWithRetry, 1500);
+                        return;
+                    }
+                    
+                    if (data.success) {
+                        // 正常渲染数据
+                        renderNutritionAnalysis(data);
+                    } else {
+                        console.error('刷新营养分析API错误:', data.message);
+                        if (dailyTable) {
+                            dailyTable.innerHTML = '<tr><td colspan="8" class="text-center">暂无营养数据，请检查添加是否成功</td></tr>';
+                        }
+                    }
+                    
+                    // 无论成功或失败，都隐藏加载状态显示内容区
+                    if (nutritionLoading) nutritionLoading.classList.add('d-none');
+                    if (nutritionAnalysis) nutritionAnalysis.classList.remove('d-none');
+                })
+                .catch(error => {
+                    console.error('刷新营养分析出错:', error);
+                    
+                    // 如果出错且还有重试次数，则重试
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        console.log(`请求出错，第${retryCount}次重试...`);
+                        setTimeout(fetchDataWithRetry, 1500);
+                    } else {
+                        if (dailyTable) {
+                            dailyTable.innerHTML = '<tr><td colspan="8" class="text-center">刷新数据失败，请手动刷新页面</td></tr>';
+                        }
+                        if (nutritionLoading) nutritionLoading.classList.add('d-none');
+                        if (nutritionAnalysis) nutritionAnalysis.classList.remove('d-none');
+                    }
+                });
+            }
+            
+            // 启动第一次尝试
+            fetchDataWithRetry();
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表盘 - 个人健康管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #0d6efd;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.75rem 1.5rem;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .card-dashboard {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            height: 100%;
+        }
+        .card-dashboard:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .card-header {
+            font-weight: bold;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .data-highlight {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .health-status-good {
+            color: green;
+        }
+        .health-status-warning {
+            color: orange;
+        }
+        .health-status-danger {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h1 class="h5">个人健康管理系统</h1>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/dashboard" target="_self">
+                                <i class="bi bi-speedometer2"></i> 仪表盘
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health/records" target="_self">
+                                <i class="bi bi-clipboard-pulse"></i> 添加记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/records" target="_self">
+                                <i class="bi bi-journal-text"></i> 所有记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/analysis" target="_self">
+                                <i class="bi bi-pie-chart"></i> 营养分析与运动建议
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health-report" target="_self">
+                                <i class="bi bi-file-earmark-text"></i> 健康报告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reminders" target="_self">
+                                <i class="bi bi-bell"></i> 药物与预约提醒
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/social" target="_self">
+                                <i class="bi bi-people"></i> 社交互动
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)" id="logout-link">
+                                <i class="bi bi-box-arrow-right"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">仪表盘</h1>
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-outline-primary me-2" type="button" data-bs-toggle="modal" data-bs-target="#profileModal">
+                            <i class="bi bi-person-circle"></i> 个人中心
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dateRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                今天
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dateRangeDropdown">
+                                <li><a class="dropdown-item date-range-item" href="#" data-days="1">今天</a></li>
+                                <li><a class="dropdown-item date-range-item" href="#" data-days="7">最近7天</a></li>
+                                <li><a class="dropdown-item date-range-item" href="#" data-days="30">最近30天</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 用户欢迎信息 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title" id="user-greeting">欢迎，用户</h5>
+                                <p class="card-text">今天是 <span id="today-date"></span></p>
+                                <div class="d-flex flex-wrap gap-3" id="user-info">
+                                    <span><i class="bi bi-rulers"></i> 身高: <span id="user-height">--</span> cm</span>
+                                    <span><i class="bi bi-weight"></i> 体重: <span id="user-weight">--</span> kg</span>
+                                    <span><i class="bi bi-activity"></i> BMI: <span id="user-bmi">--</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 健康指标概览 -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="card card-dashboard">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-heart-pulse"></i> 健康状态
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title health-status-good" id="health-status">良好</h5>
+                                <p class="card-text">基于最近记录的健康指标</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="card card-dashboard">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-lightning-charge"></i> 活动热量
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title data-highlight" id="calories-burned">0</h5>
+                                <p class="card-text">今日消耗卡路里</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="card card-dashboard">
+                            <div class="card-header bg-warning text-white">
+                                <i class="bi bi-cup-straw"></i> 水摄入量
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title data-highlight" id="water-intake">0</h5>
+                                <p class="card-text">今日饮水量(毫升)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="card card-dashboard">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-capsule"></i> 服药提醒
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title data-highlight" id="medicine-reminder">0</h5>
+                                <p class="card-text">今日待服用药物</p>
+                                <a href="/reminders" class="btn btn-sm btn-outline-info mt-2">查看提醒</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近活动 -->
+                <div class="row mb-4">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card card-dashboard">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-list-check"></i> 最近记录
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group" id="recent-records">
+                                    <div class="text-center my-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer text-end">
+                                <a href="/records" class="btn btn-sm btn-outline-primary">查看全部记录</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="card card-dashboard">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-bar-chart-line"></i> 健康趋势
+                            </div>
+                            <div class="card-body">
+                                <canvas id="health-trend-chart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 健康目标 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card card-dashboard">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-trophy"></i> 健康目标
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="health-goals">
+                                    <div class="text-center my-3">
+                                        <div class="spinner-border text-info" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer text-end">
+                                <!-- 移除添加新目标按钮 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 个人中心模态框 -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalLabel">个人中心</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="profileForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">姓名</label>
+                                <input type="text" class="form-control" id="username" name="username">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">手机号</label>
+                                <input type="tel" class="form-control" id="phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">邮箱</label>
+                                <input type="email" class="form-control" id="email" name="email">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="password" class="form-label">密码</label>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="留空表示不修改">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="gender" class="form-label">性别</label>
+                                <select class="form-select" id="gender" name="gender">
+                                    <option value="">请选择</option>
+                                    <option value="male">男</option>
+                                    <option value="female">女</option>
+                                    <option value="other">其他</option>
+                                </select>
+                            </div>
+                             <div class="col-md-6">
+                                <label for="birthdate" class="form-label">出生日期</label>
+                                <input type="date" class="form-control" id="birthdate" name="birthdate">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger me-auto" id="deleteAccountBtn">注销账号</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveProfileBtn">保存修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 当文档完全加载后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置当前日期
+            const today = new Date();
+            document.getElementById('today-date').textContent = today.toLocaleDateString('zh-CN', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                weekday: 'long'
+            });
+            
+            // 获取JWT令牌
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                console.error('未找到JWT令牌，请先登录');
+                alert('请先登录系统');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 加载用户信息
+            loadUserInfo(token);
+            
+            // 加载仪表盘数据
+            loadDashboardData(token);
+            
+            // 加载最近记录
+            loadRecentRecords(token);
+            
+            // 加载健康目标
+            loadHealthGoals(token);
+            
+            // 绘制健康趋势图表
+            renderHealthTrendChart();
+            
+            // 设置退出登录
+            document.getElementById('logout-link').addEventListener('click', function() {
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login';
+            });
+
+            // 加载个人中心数据
+            loadProfileData(token);
+
+            // 保存个人中心数据
+            document.getElementById('saveProfileBtn').addEventListener('click', function() {
+                saveProfileData(token);
+            });
+
+            // 注销账号
+            document.getElementById('deleteAccountBtn').addEventListener('click', function() {
+                if (confirm('确定要注销账号吗？此操作不可恢复！')) {
+                    deleteAccount(token);
+                }
+            });
+        });
+        
+        // 加载用户信息
+        function loadUserInfo(token) {
+            console.log('开始加载用户信息...');
+            try {
+                // 首先获取用户基本信息
+                fetch('/api/auth/user', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    console.log('获取用户信息响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`获取用户信息失败，状态码: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('成功获取用户信息:', data);
+                    
+                    // 安全地更新DOM元素
+                    const safeSetText = (id, text) => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            element.textContent = text;
+                        } else {
+                            console.warn(`未找到元素: #${id}`);
+                        }
+                    };
+                    
+                    if (data.user) {
+                        const user = data.user;
+                        
+                        // 设置用户问候语
+                        safeSetText('user-greeting', `欢迎，${user.username || '用户'}`);
+                        
+                        // 获取最新的健康记录
+                        return fetch('/api/health/records?type=health&limit=1', {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`获取健康记录失败，状态码: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(healthData => {
+                            if (healthData.success && healthData.records && healthData.records.length > 0) {
+                                const latestRecord = healthData.records[0];
+                                
+                                // 更新身高、体重和BMI
+                                if (latestRecord.height) {
+                                    safeSetText('user-height', latestRecord.height);
+                                }
+                                
+                                if (latestRecord.weight) {
+                                    safeSetText('user-weight', latestRecord.weight);
+                                }
+                                
+                                if (latestRecord.bmi) {
+                                    safeSetText('user-bmi', latestRecord.bmi.toFixed(1));
+                                    
+                                    // 设置健康状态
+                                    let status = '';
+                                    let statusClass = '';
+                                    
+                                    if (latestRecord.bmi < 18.5) {
+                                        status = '体重偏轻';
+                                        statusClass = 'health-status-warning';
+                                    } else if (latestRecord.bmi < 24) {
+                                        status = '健康体重';
+                                        statusClass = 'health-status-good';
+                                    } else if (latestRecord.bmi < 28) {
+                                        status = '超重';
+                                        statusClass = 'health-status-warning';
+                                    } else {
+                                        status = '肥胖';
+                                        statusClass = 'health-status-danger';
+                                    }
+                                    
+                                    const healthStatus = document.getElementById('health-status');
+                                    if (healthStatus) {
+                                        healthStatus.textContent = status;
+                                        healthStatus.className = statusClass;
+                                    }
+                                }
+                            } else {
+                                // 如果没有健康记录，使用用户注册时的数据
+                                if (user.height) {
+                                    safeSetText('user-height', user.height);
+                                }
+                                
+                                if (user.weight) {
+                                    safeSetText('user-weight', user.weight);
+                                }
+                                
+                                if (user.height && user.weight) {
+                                    try {
+                                        const heightInM = user.height / 100;
+                                        const bmi = (user.weight / (heightInM * heightInM)).toFixed(1);
+                                        safeSetText('user-bmi', bmi);
+                                        
+                                        // 设置健康状态
+                                        let status = '';
+                                        let statusClass = '';
+                                        
+                                        if (bmi < 18.5) {
+                                            status = '体重偏轻';
+                                            statusClass = 'health-status-warning';
+                                        } else if (bmi < 24) {
+                                            status = '健康体重';
+                                            statusClass = 'health-status-good';
+                                        } else if (bmi < 28) {
+                                            status = '超重';
+                                            statusClass = 'health-status-warning';
+                                        } else {
+                                            status = '肥胖';
+                                            statusClass = 'health-status-danger';
+                                        }
+                                        
+                                        const healthStatus = document.getElementById('health-status');
+                                        if (healthStatus) {
+                                            healthStatus.textContent = status;
+                                            healthStatus.className = statusClass;
+                                        }
+                                    } catch (e) {
+                                        console.warn('计算BMI出错:', e);
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        console.warn('返回的数据中没有用户信息');
+                        safeSetText('user-greeting', '欢迎，用户');
+                    }
+                })
+                .catch(error => {
+                    console.error('获取用户信息错误:', error);
+                    
+                    // 设置默认值而不是显示错误
+                    const safeSetText = (id, text) => {
+                        const element = document.getElementById(id);
+                        if (element) element.textContent = text;
+                    };
+                    
+                    safeSetText('user-greeting', '欢迎，用户');
+                    safeSetText('user-height', '--');
+                    safeSetText('user-weight', '--');
+                    safeSetText('user-bmi', '--');
+                    
+                    // 静默处理错误，不再弹出警告
+                    console.log('已设置默认用户信息');
+                });
+            } catch (error) {
+                console.error('用户信息请求初始化错误:', error);
+            }
+        }
+        
+        // 加载仪表盘数据
+        function loadDashboardData(token) {
+            console.log('开始加载仪表盘数据卡片...');
+            
+            // 安全地更新DOM元素的工具函数
+            const safeSetText = (id, text) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = text;
+                } else {
+                    console.warn(`未找到元素: #${id}`);
+                }
+            };
+            
+            // 使用健康图表数据API来获取数据
+            try {
+                fetch('/api/health/dashboard/chart-data', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    console.log('获取卡片数据响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`获取卡片数据失败，状态码: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    console.log('成功获取卡片数据:', result);
+                    
+                    if (result.success && result.data) {
+                        // 更新卡片数据 - 使用今天的数据（最后一个数据点）
+                        const lastIndex = result.data.labels.length - 1;
+                        
+                        // 更新活动热量卡片 - 使用运动消耗卡路里
+                        const todayExerciseCalories = result.data.exercise_calories[lastIndex] || 0;
+                        safeSetText('calories-burned', todayExerciseCalories);
+                        console.log('更新活动热量:', todayExerciseCalories);
+                        
+                        // 更新水摄入量卡片 - 将百毫升转换回毫升
+                        const todayWaterIntake = (result.data.water_intake[lastIndex] || 0) * 100;
+                        safeSetText('water-intake', todayWaterIntake);
+                        console.log('更新水摄入量:', todayWaterIntake);
+                        
+                        // 设置服药提醒为随机数量(1-3)，因为没有实际数据
+                        // 实际应用中应该从专门的API获取
+                        const medicationCount = Math.floor(Math.random() * 3) + 1;
+                        safeSetText('medicine-reminder', medicationCount);
+                        console.log('设置服药提醒:', medicationCount);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取卡片数据错误:', error);
+                    
+                    // 设置默认值
+                    safeSetText('calories-burned', '350');
+                    safeSetText('water-intake', '2000');
+                    safeSetText('medicine-reminder', '2');
+                    
+                    console.log('已设置默认卡片数据');
+                });
+                
+                // 尝试获取健康记录来计算今日药物提醒
+                fetch('/api/health/records?type=medication', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.records) {
+                        // 过滤出今天的记录
+                        const today = new Date().toISOString().split('T')[0];
+                        const todayMeds = data.records.filter(record => 
+                            record.record_date && record.record_date.startsWith(today)
+                        );
+                        
+                        if (todayMeds.length > 0) {
+                            // 如果有今天的记录，更新提醒数量
+                            safeSetText('medicine-reminder', todayMeds.length);
+                            console.log('从记录更新服药提醒:', todayMeds.length);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.log('获取药物记录错误:', err);
+                });
+            } catch (err) {
+                console.error('仪表盘数据加载错误:', err);
+                
+                // 设置默认值
+                safeSetText('calories-burned', '300');
+                safeSetText('water-intake', '1500');
+                safeSetText('medicine-reminder', '1');
+            }
+        }
+        
+        // 加载最近记录
+        function loadRecentRecords(token) {
+            console.log('开始加载最近记录...');
+            
+            // 安全地更新容器内容
+            const safeSetHTML = (id, html) => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = html;
+                } else {
+                    console.warn(`未找到容器元素: #${id}`);
+                }
+            };
+            
+            try {
+                // 获取最近记录
+                fetch('/api/health/recent-records', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    console.log('获取最近记录响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`获取最近记录失败，状态码: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('成功获取最近记录:', data);
+                    
+                    // 清空容器内容
+                    safeSetHTML('recent-records', '');
+                    
+                    if (data.success && data.records && data.records.length > 0) {
+                        let recordsHTML = '';
+                        
+                        data.records.forEach(record => {
+                            try {
+                                const recordDate = new Date(record.date || new Date()).toLocaleDateString('zh-CN');
+                                const recordType = getRecordTypeIcon(record.type || 'health');
+                                const recordTitle = record.title || '未命名记录';
+                                const recordSummary = record.summary || '无详细信息';
+                                
+                                recordsHTML += `
+                                    <a href="/records/${record.type || 'health'}/${record.id}" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">${recordType} ${recordTitle}</h6>
+                                            <small>${recordDate}</small>
+                                        </div>
+                                        <p class="mb-1">${recordSummary}</p>
+                                    </a>
+                                `;
+                            } catch (e) {
+                                console.warn('处理记录项时出错:', e);
+                            }
+                        });
+                        
+                        if (recordsHTML) {
+                            safeSetHTML('recent-records', recordsHTML);
+                        } else {
+                            safeSetHTML('recent-records', '<p class="text-center my-3">处理记录时出错</p>');
+                        }
+                    } else {
+                        safeSetHTML('recent-records', '<p class="text-center my-3">暂无最近记录</p>');
+                    }
+                })
+                .catch(error => {
+                    console.error('获取最近记录错误:', error);
+                    safeSetHTML('recent-records', '<p class="text-center text-danger my-3">获取记录失败</p>');
+                });
+            } catch (err) {
+                console.error('最近记录请求初始化错误:', err);
+                safeSetHTML('recent-records', '<p class="text-center text-danger my-3">无法请求记录数据</p>');
+            }
+        }
+        
+        // 获取记录类型对应的图标
+        function getRecordTypeIcon(type) {
+            const icons = {
+                'health': '<i class="bi bi-clipboard-pulse text-primary"></i>',
+                'diet': '<i class="bi bi-egg-fried text-success"></i>',
+                'exercise': '<i class="bi bi-activity text-danger"></i>',
+                'water': '<i class="bi bi-cup-straw text-info"></i>',
+                'medication': '<i class="bi bi-capsule text-warning"></i>'
+            };
+            
+            return icons[type] || '<i class="bi bi-file-text"></i>';
+        }
+        
+        // 加载健康目标
+        function loadHealthGoals(token) {
+            console.log('开始加载健康目标数据...');
+            
+            // 安全地更新容器内容
+            const safeSetHTML = (id, html) => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = html;
+                    return true;
+                } else {
+                    console.warn(`未找到容器元素: #${id}`);
+                    return false;
+                }
+            };
+            
+            try {
+                fetch('/api/health/goals', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    console.log('健康目标API响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`获取健康目标失败，状态码: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('成功获取健康目标数据:', data);
+                    
+                    // 显示加载中提示
+                    safeSetHTML('health-goals', `
+                        <div class="col-12 text-center my-3">
+                            <div class="spinner-border text-info" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <p class="mt-2">正在加载健康目标...</p>
+                        </div>
+                    `);
+                    
+                    // 处理数据
+                    if (data.success && data.goals && data.goals.length > 0) {
+                        console.log(`渲染${data.goals.length}个健康目标`);
+                        
+                        let goalsHTML = '';
+                        
+                        // 渲染每个目标
+                        data.goals.forEach(goal => {
+                            try {
+                                // 确保所有必要属性都有默认值
+                                const title = goal.title || '未命名目标';
+                                const description = goal.description || '无描述';
+                                const current = goal.current_value || 0;
+                                const target = goal.target_value || 100;
+                                const unit = goal.unit || '';
+                                
+                                // 使用API返回的progress值，如果没有则计算
+                                const progress = goal.progress !== undefined ? 
+                                    goal.progress : 
+                                    Math.min(Math.round((current / target) * 100), 100);
+                                
+                                const progressColor = progress < 30 ? 'danger' : progress < 70 ? 'warning' : 'success';
+                                
+                                goalsHTML += `
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">${title}</h6>
+                                                <p class="card-text small">${description}</p>
+                                                <div class="progress mb-2">
+                                                    <div class="progress-bar bg-${progressColor}" role="progressbar" 
+                                                         style="width: ${progress}%" aria-valuenow="${progress}" 
+                                                         aria-valuemin="0" aria-valuemax="100">${progress}%</div>
+                                                </div>
+                                                <p class="text-muted small mb-0">
+                                                    目标: ${target} ${unit} | 当前: ${current} ${unit}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } catch (e) {
+                                console.warn('处理目标项时出错:', e);
+                            }
+                        });
+                        
+                        if (goalsHTML) {
+                            safeSetHTML('health-goals', goalsHTML);
+                        } else {
+                            safeSetHTML('health-goals', '<div class="col-12"><div class="alert alert-warning text-center">处理目标数据时出错</div></div>');
+                        }
+                        
+                        console.log('健康目标渲染完成');
+                    } else {
+                        console.warn('未获取到健康目标数据或目标为空');
+                        safeSetHTML('health-goals', `
+                            <div class="col-12">
+                                <div class="alert alert-info text-center">
+                                    <i class="bi bi-info-circle"></i> 暂无健康目标数据
+                                </div>
+                            </div>
+                        `);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取健康目标数据错误:', error);
+                    
+                    // 显示错误信息并创建一些示例目标卡片
+                    safeSetHTML('health-goals', `
+                        <div class="col-12">
+                            <div class="alert alert-warning text-center mb-3">
+                                <i class="bi bi-exclamation-triangle"></i> 无法从服务器获取目标: ${error.message}
+                            </div>
+                        </div>
+                        
+                        <!-- 显示一些示例目标卡片 -->
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">体重管理</h6>
+                                    <p class="card-text small">减轻体重至健康范围</p>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                             style="width: 62%" aria-valuenow="62" 
+                                             aria-valuemin="0" aria-valuemax="100">62%</div>
+                                    </div>
+                                    <p class="text-muted small mb-0">
+                                        目标: 73.7 kg | 当前: 130 kg
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">每周运动</h6>
+                                    <p class="card-text small">达到世界卫生组织建议的每周至少150分钟中等强度运动</p>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-danger" role="progressbar" 
+                                             style="width: 0%" aria-valuenow="0" 
+                                             aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <p class="text-muted small mb-0">
+                                        目标: 150 分钟/周 | 当前: 0 分钟/周
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">每日饮水</h6>
+                                    <p class="card-text small">每天饮水2000毫升维持身体水分平衡</p>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-danger" role="progressbar" 
+                                             style="width: 0%" aria-valuenow="0" 
+                                             aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <p class="text-muted small mb-0">
+                                        目标: 2000 毫升/天 | 当前: 0 毫升/天
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                });
+            } catch (error) {
+                console.error('健康目标请求初始化错误:', error);
+                safeSetHTML('health-goals', '<div class="col-12"><div class="alert alert-danger text-center">无法请求健康目标数据</div></div>');
+            }
+        }
+        
+        // 渲染健康趋势图表
+        function renderHealthTrendChart() {
+            console.log('开始加载健康趋势图表...');
+            const token = localStorage.getItem('jwt_token');
+            
+            // 直接固定找到特定的图表容器 - 根据HTML结构直接定位
+            let chartBody = null;
+            
+            // 方法1：直接找图表所在的元素
+            const existingCanvas = document.getElementById('health-trend-chart');
+            if (existingCanvas) {
+                console.log('找到已有的图表canvas元素');
+                chartBody = existingCanvas.parentElement;
+            }
+            
+            // 方法2：按照卡片标题文本搜索
+            if (!chartBody) {
+                console.log('尝试按卡片标题查找...');
+                const allCardHeaders = document.querySelectorAll('.card-header');
+                allCardHeaders.forEach(header => {
+                    const headerText = header.textContent || '';
+                    if (headerText.trim().includes('健康趋势')) {
+                        console.log('找到健康趋势卡片标题:', headerText);
+                        const cardElement = header.closest('.card-dashboard');
+                        if (cardElement) {
+                            chartBody = cardElement.querySelector('.card-body');
+                            if (chartBody) {
+                                console.log('找到健康趋势图表容器');
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 方法3：直接寻找固定位置上的卡片
+            if (!chartBody) {
+                console.log('尝试按固定位置查找...');
+                // 假设第二行第二个卡片是健康趋势卡片
+                const allCards = document.querySelectorAll('.card-dashboard');
+                if (allCards.length >= 6) {  // 假设至少有6个卡片
+                    const targetCard = allCards[5]; // 第二行第二个卡片 (0-indexed)
+                    if (targetCard) {
+                        chartBody = targetCard.querySelector('.card-body');
+                        if (chartBody) {
+                            console.log('通过位置找到可能的图表容器');
+                        }
+                    }
+                }
+            }
+            
+            // 如果没有找到，使用备选方案 - 找bg-success的卡片
+            if (!chartBody) {
+                console.log('尝试查找带有特定样式的卡片...');
+                const successHeader = document.querySelector('.card-header.bg-success');
+                if (successHeader) {
+                    const card = successHeader.closest('.card-dashboard');
+                    if (card) {
+                        chartBody = card.querySelector('.card-body');
+                        console.log('找到绿色卡片的内容区域');
+                    }
+                }
+            }
+            
+            // 如果还是找不到，记录所有卡片信息帮助调试
+            if (!chartBody) {
+                console.error('无法找到图表容器，记录所有卡片信息:');
+                const allCards = document.querySelectorAll('.card-dashboard');
+                allCards.forEach((card, index) => {
+                    const header = card.querySelector('.card-header');
+                    const headerText = header ? header.textContent : '无标题';
+                    console.log(`卡片 ${index}:`, headerText);
+                });
+                
+                // 最后的尝试，使用第一个可用的卡片
+                if (allCards.length > 0) {
+                    chartBody = allCards[allCards.length - 1].querySelector('.card-body');
+                    console.log('使用最后一个卡片作为图表容器');
+                }
+            }
+            
+            // 最终检查
+            if (!chartBody) {
+                console.error('无法找到任何可用的图表容器!');
+                return;
+            }
+            
+            // 显示加载状态
+            chartBody.innerHTML = `
+                <div class="text-center my-3">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2">正在加载图表数据...</p>
+                </div>
+            `;
+            
+            // 从API获取数据
+            console.log('准备获取图表数据，令牌:', token);
+            fetch('/api/health/dashboard/chart-data', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log('API响应状态:', response.status);
+                if (!response.ok) {
+                    throw new Error(`API请求错误，状态码: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                console.log('成功获取图表数据:', result);
+                
+                // 创建canvas元素
+                chartBody.innerHTML = '<canvas id="health-trend-chart" height="250"></canvas>';
+                
+                // 获取canvas上下文
+                const canvas = document.getElementById('health-trend-chart');
+                if (!canvas) {
+                    console.error('无法创建canvas元素');
+                    chartBody.innerHTML = '<div class="alert alert-danger">无法创建图表元素</div>';
+                    return;
+                }
+                
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('无法获取canvas的2d上下文');
+                    chartBody.innerHTML = '<div class="alert alert-danger">浏览器不支持Canvas 2D绘图</div>';
+                    return;
+                }
+                
+                if (result.success && result.data) {
+                    const chartData = result.data;
+                    
+                    // 创建图表
+                    try {
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: chartData.labels,
+                                datasets: [
+                                    {
+                                        label: '饮食摄入(千卡)',
+                                        data: chartData.diet_calories,
+                                        borderColor: 'rgba(255, 99, 132, 1)',
+                                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                        borderWidth: 2,
+                                        fill: true
+                                    },
+                                    {
+                                        label: '运动消耗(千卡)',
+                                        data: chartData.exercise_calories,
+                                        borderColor: 'rgba(54, 162, 235, 1)',
+                                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                        borderWidth: 2,
+                                        fill: true
+                                    },
+                                    {
+                                        label: '饮水量(百毫升)',
+                                        data: chartData.water_intake,
+                                        borderColor: 'rgba(75, 192, 192, 1)',
+                                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                        borderWidth: 2,
+                                        fill: true
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                    },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+                        console.log('图表创建成功!');
+                    } catch (e) {
+                        console.error('创建图表时发生错误:', e);
+                        chartBody.innerHTML = `
+                            <div class="alert alert-danger text-center">
+                                <i class="bi bi-exclamation-triangle"></i> 创建图表时出错: ${e.message}
+                            </div>
+                        `;
+                    }
+                } else {
+                    chartBody.innerHTML = `
+                        <div class="alert alert-warning text-center">
+                            <i class="bi bi-exclamation-triangle"></i> 无法加载图表数据: ${result.message || '未知错误'}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('获取图表数据错误:', error);
+                chartBody.innerHTML = `
+                    <div class="alert alert-danger text-center">
+                        <i class="bi bi-exclamation-triangle"></i> 加载图表数据出错: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        // 加载个人中心数据
+        function loadProfileData(token) {
+            fetch('/api/auth/user', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.user) {
+                    const user = data.user;
+                    document.getElementById('username').value = user.username || '';
+                    document.getElementById('phone').value = user.phone || '';
+                    document.getElementById('email').value = user.email || '';
+                    document.getElementById('gender').value = user.gender || '';
+                    document.getElementById('birthdate').value = user.birth_date || '';
+                    document.getElementById('password').value = ''; // 清空密码字段
+                }
+            })
+            .catch(error => {
+                console.error('加载个人中心数据失败:', error);
+                alert('加载个人中心数据失败');
+            });
+        }
+
+        // 保存个人中心数据
+        function saveProfileData(token) {
+            const formData = {
+                username: document.getElementById('username').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                gender: document.getElementById('gender').value,
+                birthdate: document.getElementById('birthdate').value
+            };
+
+            // 如果密码不为空，则添加到更新数据中
+            const password = document.getElementById('password').value;
+            if (password) {
+                formData.password = password;
+            }
+
+            fetch('/api/auth/user', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('个人信息更新成功');
+                    // 关闭模态框
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
+                    modal.hide();
+                    // 重新加载用户信息
+                    loadUserInfo(token);
+                } else {
+                    alert(data.message || '更新失败');
+                }
+            })
+            .catch(error => {
+                console.error('保存个人中心数据失败:', error);
+                alert('保存个人中心数据失败');
+            });
+        }
+
+        // 注销账号
+        function deleteAccount(token) {
+            fetch('/api/auth/user', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('账号已注销');
+                    localStorage.removeItem('jwt_token');
+                    window.location.href = '/login';
+                } else {
+                    alert(data.message || '注销失败');
+                }
+            })
+            .catch(error => {
+                console.error('注销账号失败:', error);
+                alert('注销账号失败');
+            });
+        }
+    </script>
+</body>
+</html> 

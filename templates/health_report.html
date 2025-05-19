@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>健康报告 - 个人健康管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #0d6efd;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 0.75rem 1.5rem;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            font-weight: bold;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .report-title {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .report-date {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .report-content {
+            white-space: pre-line;
+            margin-top: 15px;
+        }
+        .section-title {
+            color: #0d6efd;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        /* 打印样式 */
+        @media print {
+            body {
+                font-size: 12pt;
+                margin: 0;
+                padding: 0;
+                background: #fff;
+            }
+            
+            .container-fluid {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .card {
+                border: none;
+                box-shadow: none;
+            }
+            
+            .report-title {
+                font-size: 18pt;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            
+            .section-title {
+                font-size: 14pt;
+                page-break-after: avoid;
+            }
+            
+            .report-content {
+                page-break-inside: avoid;
+            }
+            
+            .report-actions, .sidebar, .btn, .card-header, #report-list, .no-print {
+                display: none !important;
+            }
+            
+            a[href]:after {
+                content: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h1 class="h5">个人健康管理系统</h1>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard" target="_self">
+                                <i class="bi bi-speedometer2"></i> 仪表盘
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/health/records" target="_self">
+                                <i class="bi bi-clipboard-pulse"></i> 添加记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/records" target="_self">
+                                <i class="bi bi-journal-text"></i> 所有记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/analysis" target="_self">
+                                <i class="bi bi-pie-chart"></i> 营养分析与运动建议
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/health-report" target="_self">
+                                <i class="bi bi-file-earmark-text"></i> 健康报告
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reminders" target="_self">
+                                <i class="bi bi-bell"></i> 药物与预约提醒
+                            </a>
+                        </li>
+                         <li class="nav-item">
+                            <a class="nav-link" href="/social" target="_self">
+                                <i class="bi bi-people"></i> 社交互动
+                            </a>
+                        </li>
+
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:void(0)" id="logout-link">
+                                <i class="bi bi-box-arrow-right"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">健康报告</h1>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                        <i class="bi bi-plus-circle"></i> 生成新报告
+                    </button>
+                </div>
+
+                <!-- 报告列表 -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-list-ul"></i> 报告列表
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group" id="report-list">
+                                    <div class="text-center py-3" id="reports-loading">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                    </div>
+                                    <div id="no-reports-message" style="display: none;">
+                                        <p class="text-center text-muted">
+                                            <i class="bi bi-info-circle"></i> 暂无健康报告
+                                        </p>
+                                        <p class="text-center">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                                                生成第一份报告
+                                            </button>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-file-earmark-text"></i> <span id="current-report-title">报告详情</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="report-details-placeholder" class="text-center py-5">
+                                    <i class="bi bi-arrow-left-circle fs-1 text-muted"></i>
+                                    <p class="mt-3 text-muted">从左侧选择一份报告查看详情</p>
+                                </div>
+                                <div id="report-details" style="display: none;">
+                                    <h4 class="report-title" id="report-title"></h4>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <p class="report-date mb-0">
+                                            报告周期: <span id="report-date-range"></span><br>
+                                            生成时间: <span id="report-created-at"></span>
+                                        </p>
+                                        <div class="report-actions">
+                                            <button class="btn btn-sm btn-primary" onclick="printReport()">
+                                                <i class="bi bi-printer"></i> 打印报告
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="downloadReport()">
+                                                <i class="bi bi-download"></i> 保存PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <h5 class="section-title"><i class="bi bi-clipboard-pulse text-primary me-2"></i>健康状况摘要</h5>
+                                    <div class="report-content bg-light p-3 rounded" id="health-summary"></div>
+                                    
+                                    <h5 class="section-title"><i class="bi bi-egg-fried text-success me-2"></i>饮食摘要</h5>
+                                    <div class="report-content bg-light p-3 rounded" id="diet-summary"></div>
+                                    
+                                    <h5 class="section-title"><i class="bi bi-activity text-danger me-2"></i>运动摘要</h5>
+                                    <div class="report-content bg-light p-3 rounded" id="exercise-summary"></div>
+                                    
+                                    <h5 class="section-title"><i class="bi bi-capsule text-warning me-2"></i>用药摘要</h5>
+                                    <div class="report-content bg-light p-3 rounded" id="medication-summary"></div>
+                                    
+                                    <h5 class="section-title"><i class="bi bi-lightbulb text-info me-2"></i>健康建议</h5>
+                                    <div class="report-content bg-light p-3 rounded" id="recommendations"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 生成报告模态框 -->
+    <div class="modal fade" id="generateReportModal" tabindex="-1" aria-labelledby="generateReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="generateReportModalLabel">生成健康报告</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="generate-report-form">
+                        <div class="mb-3">
+                            <label for="report-type" class="form-label">报告类型</label>
+                            <select class="form-select" id="report-type" required>
+                                <option value="weekly">周报</option>
+                                <option value="monthly">月报</option>
+                                <option value="yearly">年报</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="start-date" class="form-label">开始日期（可选）</label>
+                            <input type="date" class="form-control" id="start-date">
+                            <div class="form-text">如不指定，将使用默认日期范围</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="end-date" class="form-label">结束日期（可选）</label>
+                            <input type="date" class="form-control" id="end-date">
+                            <div class="form-text">如不指定，将使用默认日期范围</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="generate-report-btn">生成报告</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取JWT令牌
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                alert('请先登录系统');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // 加载报告列表
+            loadReportList(token);
+            
+            // 设置生成报告按钮事件
+            document.getElementById('generate-report-btn').addEventListener('click', function() {
+                generateReport(token);
+            });
+            
+            // 设置退出登录
+            document.getElementById('logout-link').addEventListener('click', function() {
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login';
+            });
+        });
+        
+        // 加载报告列表
+        function loadReportList(token) {
+            fetch('/api/health-report/list', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`获取报告列表失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取报告列表成功:', data);
+                const reportList = document.getElementById('report-list');
+                const loadingElement = document.getElementById('reports-loading');
+                const noReportsMessage = document.getElementById('no-reports-message');
+                
+                // 移除加载中显示
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                }
+                
+                // 检查是否有报告
+                if (!data.data || data.data.length === 0) {
+                    if (noReportsMessage) {
+                        noReportsMessage.style.display = 'block';
+                    }
+                    return;
+                }
+                
+                // 添加报告到列表
+                data.data.forEach(report => {
+                    const reportItem = document.createElement('a');
+                    reportItem.classList.add('list-group-item', 'list-group-item-action');
+                    reportItem.setAttribute('href', 'javascript:void(0)');
+                    reportItem.setAttribute('data-report-id', report.id);
+                    
+                    reportItem.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${report.title}</h6>
+                            <small>${formatDate(report.created_at)}</small>
+                        </div>
+                        <small class="text-muted">${report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)}</small>
+                    `;
+                    
+                    reportItem.addEventListener('click', function() {
+                        // 移除其他项目的活动状态
+                        const activeItems = reportList.querySelectorAll('.active');
+                        activeItems.forEach(item => item.classList.remove('active'));
+                        
+                        // 添加当前项目的活动状态
+                        this.classList.add('active');
+                        
+                        // 加载报告详情
+                        loadReportDetails(token, report.id);
+                    });
+                    
+                    reportList.appendChild(reportItem);
+                });
+                
+                // 默认选中第一个报告并显示详情
+                const firstReport = reportList.querySelector('.list-group-item');
+                if (firstReport) {
+                    firstReport.classList.add('active');
+                    loadReportDetails(token, firstReport.getAttribute('data-report-id'));
+                }
+            })
+            .catch(error => {
+                console.error('获取报告列表错误:', error);
+                const loadingElement = document.getElementById('reports-loading');
+                if (loadingElement) {
+                    loadingElement.innerHTML = `<p class="text-danger"><i class="bi bi-exclamation-triangle"></i> 加载失败: ${error.message}</p>`;
+                }
+            });
+        }
+        
+        // 加载报告详情
+        function loadReportDetails(token, reportId) {
+            fetch(`/api/health-report/${reportId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`获取报告详情失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取报告详情成功:', data);
+                const report = data.data;
+                
+                // 隐藏占位符，显示报告详情
+                document.getElementById('report-details-placeholder').style.display = 'none';
+                document.getElementById('report-details').style.display = 'block';
+                
+                // 设置报告标题
+                document.getElementById('current-report-title').textContent = '报告详情';
+                document.getElementById('report-title').textContent = report.title;
+                
+                // 设置报告日期
+                document.getElementById('report-date-range').textContent = `${formatDate(report.start_date)} 至 ${formatDate(report.end_date)}`;
+                document.getElementById('report-created-at').textContent = formatDateTime(report.created_at);
+                
+                // 设置报告内容
+                function setFormattedText(elementId, text) {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        if (text && text.trim()) {
+                            // 保留文本的换行格式
+                            element.innerHTML = text.replace(/\n/g, '<br>');
+                            
+                            // 为运动和用药摘要添加特殊处理
+                            if (elementId === 'exercise-summary' && !text.includes('没有运动记录数据')) {
+                                // 添加链接到运动记录页面
+                                element.innerHTML += '<div class="mt-3"><a href="/records?type=exercise" class="btn btn-sm btn-outline-danger"><i class="bi bi-arrow-right"></i> 查看详细运动记录</a></div>';
+                            }
+                            
+                            if (elementId === 'medication-summary' && !text.includes('没有用药记录数据')) {
+                                // 添加链接到用药记录页面
+                                element.innerHTML += '<div class="mt-3"><a href="/records?type=medication" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-right"></i> 查看详细用药记录</a></div>';
+                            }
+                        } else {
+                            if (elementId === 'exercise-summary') {
+                                element.innerHTML = '<div class="alert alert-warning">无运动记录数据。要查看更全面的健康报告，请添加您的运动记录。</div>' +
+                                    '<div class="mt-2"><a href="/health/records" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle"></i> 添加运动记录</a></div>';
+                            } else if (elementId === 'medication-summary') {
+                                element.innerHTML = '<div class="alert alert-warning">无用药记录数据。如果您正在服用药物，请记录用药情况以便更好地跟踪。</div>' +
+                                    '<div class="mt-2"><a href="/health/records" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle"></i> 添加用药记录</a></div>';
+                            } else {
+                                element.innerHTML = '<div class="alert alert-warning">无可用数据</div>';
+                            }
+                        }
+                    }
+                }
+                
+                // 使用新函数设置各项内容
+                setFormattedText('health-summary', report.health_summary);
+                setFormattedText('diet-summary', report.diet_summary);
+                setFormattedText('exercise-summary', report.exercise_summary);
+                setFormattedText('medication-summary', report.medication_summary);
+                setFormattedText('recommendations', report.recommendations);
+            })
+            .catch(error => {
+                console.error('获取报告详情错误:', error);
+                alert(`获取报告详情失败: ${error.message}`);
+            });
+        }
+        
+        // 生成报告
+        function generateReport(token) {
+            const reportType = document.getElementById('report-type').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            // 显示生成中状态
+            const generateBtn = document.getElementById('generate-report-btn');
+            const originalBtnText = generateBtn.textContent;
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 生成中...';
+            
+            const requestData = {
+                report_type: reportType
+            };
+            
+            if (startDate) {
+                requestData.start_date = startDate;
+            }
+            
+            if (endDate) {
+                requestData.end_date = endDate;
+            }
+            
+            fetch('/api/health-report/generate', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`生成报告失败: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('生成报告成功:', data);
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('generateReportModal'));
+                modal.hide();
+                
+                // 重新加载报告列表
+                const reportList = document.getElementById('report-list');
+                reportList.innerHTML = `
+                    <div class="text-center py-3" id="reports-loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                `;
+                
+                loadReportList(token);
+                
+                // 显示成功消息
+                alert('健康报告生成成功！');
+            })
+            .catch(error => {
+                console.error('生成报告错误:', error);
+                alert(`生成报告失败: ${error.message}`);
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                generateBtn.disabled = false;
+                generateBtn.textContent = originalBtnText;
+            });
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            if (!dateString) return '未知日期';
+            
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            
+            return date.toLocaleDateString('zh-CN');
+        }
+        
+        // 格式化日期时间
+        function formatDateTime(dateTimeString) {
+            if (!dateTimeString) return '未知时间';
+            
+            const date = new Date(dateTimeString);
+            if (isNaN(date.getTime())) return dateTimeString;
+            
+            return date.toLocaleString('zh-CN');
+        }
+        
+        // 打印报告功能
+        function printReport() {
+            // 隐藏不需要打印的元素
+            const originalStyles = [];
+            document.querySelectorAll('.sidebar, .btn, .card-header').forEach((el, i) => {
+                originalStyles[i] = el.style.display;
+                el.style.display = 'none';
+            });
+            
+            // 显示报告全部内容
+            document.getElementById('report-details').style.width = '100%';
+            
+            // 打印
+            window.print();
+            
+            // 恢复原来的样式
+            document.querySelectorAll('.sidebar, .btn, .card-header').forEach((el, i) => {
+                el.style.display = originalStyles[i];
+            });
+            
+            // 恢复报告显示
+            document.getElementById('report-details').style.width = '';
+        }
+        
+        // 下载PDF功能 (简单实现，实际应使用如html2pdf等库)
+        function downloadReport() {
+            alert('PDF下载功能即将推出');
+            // 实际应用中应该使用html2pdf或jspdf库实现PDF生成
+        }
+    </script>
+</body>
+</html> 

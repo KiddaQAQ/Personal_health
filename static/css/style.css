@@ -1,0 +1,100 @@
+/* 全局样式 */
+body {
+    font-family: 'Microsoft YaHei', sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* 侧边栏样式 */
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 48px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    height: 100vh;
+}
+
+.sidebar .nav-link {
+    font-weight: 500;
+    color: #333;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.2rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 主内容区域 */
+main {
+    padding-top: 20px;
+}
+
+/* 卡片阴影 */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-weight: 500;
+}
+
+/* 登录注册表单 */
+.auth-card {
+    max-width: 450px;
+    margin: 0 auto;
+    margin-top: 100px;
+}
+
+/* 按钮样式 */
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+/* 表格样式 */
+.table td, .table th {
+    vertical-align: middle;
+}
+
+/* 指标卡片样式 */
+.display-4 {
+    font-size: 2.5rem;
+    font-weight: 300;
+}
+
+/* 响应式调整 */
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: static;
+        height: auto;
+        padding-top: 0;
+    }
+    
+    main {
+        margin-left: 0 !important;
+    }
+    
+    .display-4 {
+        font-size: 2rem;
+    }
+}
+
+/* 添加记录模态框 */
+.modal-lg {
+    max-width: 800px;
+} 
